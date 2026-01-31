@@ -34,17 +34,17 @@ public class TableDefinitionTest {
 
     public static void main(String[] args) {
         JQuickTableDefinition usersTable = createUsersTable();
-        System.out.println(usersTable.toString());
+        System.out.println(usersTable.toDDL());
         System.out.println();
 
         JQuickTableDefinition ordersTable = createOrdersTable();
-        System.out.println(ordersTable.toString());
+        System.out.println(ordersTable.toDDL());
         System.out.println();
         JQuickTableDefinition productsTable = createProductsTable();
-        System.out.println(productsTable.toString());
+        System.out.println(productsTable.toDDL());
         System.out.println();
         JQuickTableDefinition oracleTable = createOracleTable();
-        System.out.println(oracleTable.toString());
+        System.out.println(oracleTable.toDDL());
         System.out.println();
     }
 

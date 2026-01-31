@@ -15,9 +15,11 @@
  */
 package com.github.paohaijiao.ddl.table;
 
+import com.github.paohaijiao.abs.TableBuilder;
 import com.github.paohaijiao.ddl.column.JQuickColumnDefinition;
 import com.github.paohaijiao.ddl.dialect.JQuickDatabaseDialect;
 import com.github.paohaijiao.ddl.index.JQuickIndexDefinition;
+import com.github.paohaijiao.factory.TableBuilderFactory;
 import lombok.Data;
 
 import java.util.ArrayList;
@@ -48,58 +50,14 @@ public class JQuickTableDefinition {
 
     private JQuickDatabaseDialect dialect = JQuickDatabaseDialect.MYSQL;
 
+
+    public String toDDL() {
+        TableBuilder builder = TableBuilderFactory.createBuilder(this.dialect);
+        return builder.buildCreateTable(this);
+    }
+
     @Override
     public String toString() {
-        if (tableName == null || tableName.trim().isEmpty()) {
-            return "";
-        }
-        if (columns == null || columns.isEmpty()) {
-            return "";
-        }
-        StringBuilder sb = new StringBuilder();
-        sb.append("CREATE TABLE ").append(tableName).append(" (\n");
-        List<String> columnDefs = new ArrayList<>();
-        for (JQuickColumnDefinition column : columns) {
-            columnDefs.add("  " + column.toString());
-        }
-        if (primaryKeys != null && !primaryKeys.isEmpty()) {
-            String pkColumns = primaryKeys.stream().collect(Collectors.joining(", "));
-            columnDefs.add("  PRIMARY KEY (" + pkColumns + ")");
-        }
-        if (indexes != null && !indexes.isEmpty()) {
-            for (JQuickIndexDefinition index : indexes) {
-                if (index != null) {
-                    columnDefs.add("  " + index.toString());
-                }
-            }
-        }
-        sb.append(String.join(",\n", columnDefs));
-        sb.append("\n)");
-        if (tableOptions != null && !tableOptions.isEmpty()) {
-            sb.append(" ");
-            String options = tableOptions.entrySet().stream()
-            .map(entry -> entry.getKey() + "=" + entry.getValue())
-             .collect(Collectors.joining(" "));
-            sb.append(options);
-        }
-        switch (dialect) {
-            case MYSQL:
-            case SQLITE:
-                sb.append(";");
-                break;
-            case ORACLE:
-                sb.append(";");
-                break;
-            case POSTGRESQL:
-                sb.append(";");
-                break;
-            case SQL_SERVER:
-                sb.append(";");
-                break;
-            default:
-                sb.append(";");
-        }
-
-        return sb.toString();
+        return toDDL();
     }
 }
