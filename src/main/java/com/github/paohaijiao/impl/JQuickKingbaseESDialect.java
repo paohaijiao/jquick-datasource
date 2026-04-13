@@ -17,7 +17,8 @@ package com.github.paohaijiao.impl;
 
 import com.github.paohaijiao.column.JQuickColumnDefinition;
 import com.github.paohaijiao.dataType.JQuickDataType;
-import com.github.paohaijiao.dataType.enums.JQuickDataTypeFamily;
+import com.github.paohaijiao.dataType.JQuickDataTypeConverter;
+import com.github.paohaijiao.dataType.impl.JQuickKingbaseESDataTypeConverter;
 import com.github.paohaijiao.dialect.JQuickAbsSQLDialect;
 import com.github.paohaijiao.enums.JQuickForeignKeyAction;
 import com.github.paohaijiao.extra.JQuickIndexDefinition;
@@ -35,95 +36,30 @@ public class JQuickKingbaseESDialect extends JQuickAbsSQLDialect {
 
     protected static final String KINGBASE_QUOTE = "\"";
 
-    // KingbaseES 序列名称后缀
     private static final String SEQ_SUFFIX = "_seq";
 
     @Override
-    protected String quoteIdentifier(String identifier) {
-        if (identifier == null || identifier.isEmpty()) {
-            return identifier;
-        }
-        // KingbaseES 使用双引号引用标识符
-        if (identifier.startsWith(KINGBASE_QUOTE) && identifier.endsWith(KINGBASE_QUOTE)) {
-            return identifier;
-        }
-        return KINGBASE_QUOTE + identifier + KINGBASE_QUOTE;
+    protected JQuickDataTypeConverter createDataTypeConvert() {
+        return new JQuickKingbaseESDataTypeConverter();
     }
 
     @Override
-    protected String convertDataType(JQuickDataTypeFamily family, JQuickDataType dataType) {
-        switch (family) {
-            case VARCHAR:
-                int length = getIntParameter(dataType, "length", 255);
-                if (length > 10485760) {
-                    return "TEXT";
-                }
-                return "VARCHAR(" + length + ")";
-            case CHAR:
-                int charLength = getIntParameter(dataType, "length", 1);
-                return "CHAR(" + charLength + ")";
-            case TEXT:
-            case CLOB:
-                return "TEXT";
-            case INT:
-                return "INTEGER";
-            case BIGINT:
-                return "BIGINT";
-            case SMALLINT:
-                return "SMALLINT";
-            case TINYINT:
-                // KingbaseES 没有 TINYINT，使用 SMALLINT
-                return "SMALLINT";
-            case DECIMAL:
-                int precision = getIntParameter(dataType, "precision", 10);
-                int scale = getIntParameter(dataType, "scale", 0);
-                return "NUMERIC(" + precision + "," + scale + ")";
-            case FLOAT:
-                return "REAL";
-            case DOUBLE:
-                return "DOUBLE PRECISION";
-            case DATE:
-                return "DATE";
-            case TIME:
-                int timePrecision = getIntParameter(dataType, "precision", 0);
-                return timePrecision > 0 ? "TIME(" + timePrecision + ")" : "TIME";
-            case TIMESTAMP:
-                int tsPrecision = getIntParameter(dataType, "precision", 0);
-                return tsPrecision > 0 ? "TIMESTAMP(" + tsPrecision + ")" : "TIMESTAMP";
-            case DATETIME:
-                // KingbaseES 使用 TIMESTAMP 代替 DATETIME
-                int dtPrecision = getIntParameter(dataType, "precision", 0);
-                return dtPrecision > 0 ? "TIMESTAMP(" + dtPrecision + ")" : "TIMESTAMP";
-            case BLOB:
-                return "BYTEA";
-            case BINARY:
-                return "BYTEA";
-            case VARBINARY:
-                return "BYTEA";
-            case BOOLEAN:
-                return "BOOLEAN";
-            case JSON:
-                // KingbaseES 支持 JSON 类型
-                return "JSON";
-            case OTHER:
-            default:
-                return "VARCHAR(255)";
-        }
+    protected String getQuoteKeyWord() {
+        return KINGBASE_QUOTE;
     }
+
+
 
     @Override
     public String getAutoIncrementKeyword() {
-        // KingbaseES 使用 SERIAL 或 IDENTITY
         return "SERIAL";
     }
 
     @Override
     protected void appendNullClause(StringBuilder def, JQuickColumnDefinition column) {
-        // KingbaseES 默认是 NULL，NOT NULL 需要显式指定
         if (!column.isNullable()) {
             def.append(" NOT NULL");
         }
-        // 不添加 NULL 子句（KingbaseES 默认就是 NULL）
     }
 
     @Override
@@ -136,7 +72,6 @@ public class JQuickKingbaseESDialect extends JQuickAbsSQLDialect {
     @Override
     protected void appendTableOptions(StringBuilder sql, JQuickTableDefinition table) {
         // KingbaseES 表注释需要单独处理
-        // 表选项（如表空间等）可以在这里添加
         if (table.getExtensions() != null) {
             if (table.getExtensions().containsKey("tablespace")) {
                 String tablespace = table.getExtensions().get("tablespace").toString();
@@ -156,7 +91,6 @@ public class JQuickKingbaseESDialect extends JQuickAbsSQLDialect {
 
     @Override
     protected String formatBooleanDefault(boolean value) {
-        // KingbaseES 使用 TRUE/FALSE
         return value ? "TRUE" : "FALSE";
     }
 
@@ -212,8 +146,6 @@ public class JQuickKingbaseESDialect extends JQuickAbsSQLDialect {
         if (index.isUnique()) {
             sb.append("UNIQUE ");
         }
-
-        // 索引类型
         if (index.getType() != null) {
             switch (index.getType()) {
                 case BTREE:
@@ -248,14 +180,14 @@ public class JQuickKingbaseESDialect extends JQuickAbsSQLDialect {
         sb.append(" ON ").append("${tableName}").append(" (");
         sb.append(formatColumnList(index.getColumns()));
         sb.append(")");
-
-        // WHERE 条件索引（部分索引）
         if (index.getComment() != null && !index.getComment().isEmpty()) {
             sb.append(" WHERE ").append(index.getComment());
         }
 
         return sb.toString();
     }
+
+
 
     @Override
     public String buildCreateTable(JQuickTableDefinition table) {
@@ -268,13 +200,10 @@ public class JQuickKingbaseESDialect extends JQuickAbsSQLDialect {
         removeTrailingComma(sql);
         sql.append(")");
         appendTableOptions(sql, table);
-
-        // 添加表注释
         String tableComment = buildTableComment(table);
         if (tableComment != null && !tableComment.isEmpty()) {
             sql.append(";\n").append(tableComment);
         }
-
         return sql.toString();
     }
 
@@ -317,8 +246,6 @@ public class JQuickKingbaseESDialect extends JQuickAbsSQLDialect {
     public String buildCreateTableWithComments(JQuickTableDefinition table) {
         StringBuilder fullSql = new StringBuilder();
         fullSql.append(buildCreateTable(table));
-
-        // 添加列注释
         for (JQuickColumnDefinition column : table.getColumns()) {
             String columnComment = buildColumnComment(table.getTableName(), column);
             if (columnComment != null && !columnComment.isEmpty()) {
@@ -378,53 +305,42 @@ public class JQuickKingbaseESDialect extends JQuickAbsSQLDialect {
      * 构建 ALTER COLUMN 删除默认值语句
      */
     public String buildDropDefaultValue(String tableName, String columnName) {
-        return "ALTER TABLE " + quoteIdentifier(tableName)
-                + " ALTER COLUMN " + quoteIdentifier(columnName)
-                + " DROP DEFAULT";
+        return "ALTER TABLE " + quoteIdentifier(tableName) + " ALTER COLUMN " + quoteIdentifier(columnName) + " DROP DEFAULT";
     }
 
     /**
      * 构建 ALTER COLUMN 设置 NOT NULL 语句
      */
     public String buildSetNotNull(String tableName, String columnName) {
-        return "ALTER TABLE " + quoteIdentifier(tableName)
-                + " ALTER COLUMN " + quoteIdentifier(columnName)
-                + " SET NOT NULL";
+        return "ALTER TABLE " + quoteIdentifier(tableName) + " ALTER COLUMN " + quoteIdentifier(columnName) + " SET NOT NULL";
     }
 
     /**
      * 构建 ALTER COLUMN 删除 NOT NULL 语句
      */
     public String buildDropNotNull(String tableName, String columnName) {
-        return "ALTER TABLE " + quoteIdentifier(tableName)
-                + " ALTER COLUMN " + quoteIdentifier(columnName)
-                + " DROP NOT NULL";
+        return "ALTER TABLE " + quoteIdentifier(tableName) + " ALTER COLUMN " + quoteIdentifier(columnName) + " DROP NOT NULL";
     }
 
     /**
      * 构建 RENAME COLUMN 语句
      */
     public String buildRenameColumn(String tableName, String oldName, String newName) {
-        return "ALTER TABLE " + quoteIdentifier(tableName)
-                + " RENAME COLUMN " + quoteIdentifier(oldName)
-                + " TO " + quoteIdentifier(newName);
+        return "ALTER TABLE " + quoteIdentifier(tableName) + " RENAME COLUMN " + quoteIdentifier(oldName) + " TO " + quoteIdentifier(newName);
     }
 
     /**
      * 构建 ALTER COLUMN TYPE 语句
      */
     public String buildAlterColumnType(String tableName, String columnName, JQuickDataType newDataType) {
-        return "ALTER TABLE " + quoteIdentifier(tableName)
-                + " ALTER COLUMN " + quoteIdentifier(columnName)
-                + " TYPE " + getDataTypeString(newDataType);
+        return "ALTER TABLE " + quoteIdentifier(tableName) + " ALTER COLUMN " + quoteIdentifier(columnName) + " TYPE " + getDataTypeString(newDataType);
     }
 
     /**
      * 构建 DROP CONSTRAINT 语句
      */
     public String buildDropConstraint(String tableName, String constraintName) {
-        return "ALTER TABLE " + quoteIdentifier(tableName)
-                + " DROP CONSTRAINT " + quoteIdentifier(constraintName);
+        return "ALTER TABLE " + quoteIdentifier(tableName) + " DROP CONSTRAINT " + quoteIdentifier(constraintName);
     }
 
     /**

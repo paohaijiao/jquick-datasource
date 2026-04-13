@@ -17,6 +17,7 @@ package com.github.paohaijiao.dialect;
 
 import com.github.paohaijiao.column.JQuickColumnDefinition;
 import com.github.paohaijiao.dataType.JQuickDataType;
+import com.github.paohaijiao.dataType.JQuickDataTypeConverter;
 import com.github.paohaijiao.dataType.enums.JQuickDataTypeFamily;
 import com.github.paohaijiao.enums.JQuickForeignKeyAction;
 import com.github.paohaijiao.enums.JQuickPositionType;
@@ -40,12 +41,28 @@ import java.util.stream.Collectors;
 public abstract class JQuickAbsSQLDialect implements JQuickSQLDialect {
 
 
-    protected static final String QUOTE = "`";
     protected static final String NEW_LINE = "\n";
+
     protected static final String INDENT = "  ";
+
     protected static final String COMMA = ",";
+
     protected static final String SPACE = " ";
 
+    protected abstract JQuickDataTypeConverter createDataTypeConvert();
+
+    protected abstract String getQuoteKeyWord();
+    /**
+     * 转换数据类型（子类必须实现）
+     *
+     * @param family   数据类型家族
+     * @param dataType 数据类型对象（包含参数）
+     * @return 数据库特定的数据类型字符串
+     */
+    public String convertDataType(JQuickDataTypeFamily family, JQuickDataType dataType){
+        JQuickDataTypeConverter converter=this.createDataTypeConvert();
+        return converter.convert(family, dataType);
+    }
 
     @Override
     public String buildCreateTable(JQuickTableDefinition table) {
@@ -137,7 +154,6 @@ public abstract class JQuickAbsSQLDialect implements JQuickSQLDialect {
      * 子类可覆盖此方法添加特定数据库的表选项
      */
     protected void appendTableOptions(StringBuilder sql, JQuickTableDefinition table) {
-        // 表注释
         if (table.getComment() != null && !table.getComment().isEmpty()) {
             sql.append(" COMMENT = '").append(escapeString(table.getComment())).append("'");
         }
@@ -262,9 +278,7 @@ public abstract class JQuickAbsSQLDialect implements JQuickSQLDialect {
         if (columns == null || columns.isEmpty()) {
             return "";
         }
-        return columns.stream()
-                .map(this::quoteIdentifier)
-                .collect(Collectors.joining(", "));
+        return columns.stream().map(this::quoteIdentifier).collect(Collectors.joining(", "));
     }
 
     @Override
@@ -279,14 +293,7 @@ public abstract class JQuickAbsSQLDialect implements JQuickSQLDialect {
         return convertDataType(family, dataType);
     }
 
-    /**
-     * 转换数据类型（子类必须实现）
-     *
-     * @param family   数据类型家族
-     * @param dataType 数据类型对象（包含参数）
-     * @return 数据库特定的数据类型字符串
-     */
-    protected abstract String convertDataType(JQuickDataTypeFamily family, JQuickDataType dataType);
+
 
     /**
      * 获取默认数据类型
@@ -303,10 +310,10 @@ public abstract class JQuickAbsSQLDialect implements JQuickSQLDialect {
         if (identifier == null || identifier.isEmpty()) {
             return identifier;
         }
-        if (identifier.startsWith(QUOTE) && identifier.endsWith(QUOTE)) {
+        if (identifier.startsWith(this.getQuoteKeyWord()) && identifier.endsWith(this.getQuoteKeyWord())) {
             return identifier;
         }
-        return QUOTE + identifier + QUOTE;
+        return  this.getQuoteKeyWord() + identifier + this.getQuoteKeyWord();
     }
 
     /**

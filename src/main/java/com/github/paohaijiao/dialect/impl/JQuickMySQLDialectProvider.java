@@ -17,7 +17,9 @@ package com.github.paohaijiao.dialect.impl;
 
 import com.github.paohaijiao.column.JQuickColumnDefinition;
 import com.github.paohaijiao.dataType.JQuickDataType;
+import com.github.paohaijiao.dataType.JQuickDataTypeConverter;
 import com.github.paohaijiao.dataType.enums.JQuickDataTypeFamily;
+import com.github.paohaijiao.dataType.impl.JQuickMySQLDataTypeConverter;
 import com.github.paohaijiao.dialect.JQuickAbsSQLDialect;
 import com.github.paohaijiao.extra.JQuickIndexDefinition;
 import com.github.paohaijiao.table.JQuickTableDefinition;
@@ -34,74 +36,15 @@ public class JQuickMySQLDialectProvider extends JQuickAbsSQLDialect {
 
     protected static final String MYSQL_QUOTE = "`";
 
+
     @Override
-    protected String quoteIdentifier(String identifier) {
-        if (identifier == null || identifier.isEmpty()) {
-            return identifier;
-        }
-        if (identifier.startsWith(MYSQL_QUOTE) && identifier.endsWith(MYSQL_QUOTE)) {
-            return identifier;
-        }
-        return MYSQL_QUOTE + identifier + MYSQL_QUOTE;
+    protected JQuickDataTypeConverter createDataTypeConvert() {
+        return new JQuickMySQLDataTypeConverter();
     }
 
     @Override
-    protected String convertDataType(JQuickDataTypeFamily family, JQuickDataType dataType) {
-        switch (family) {
-            case VARCHAR:
-                int length = getIntParameter(dataType, "length", 255);
-                return "VARCHAR(" + length + ")";
-            case CHAR:
-                int charLength = getIntParameter(dataType, "length", 1);
-                return "CHAR(" + charLength + ")";
-            case TEXT:
-                String textType = getStringParameter(dataType, "textType", "TEXT");
-                return textType;
-            case CLOB:
-                return "LONGTEXT";
-            case INT:
-                return "INT";
-            case BIGINT:
-                return "BIGINT";
-            case SMALLINT:
-                return "SMALLINT";
-            case TINYINT:
-                return "TINYINT";
-            case DECIMAL:
-                int precision = getIntParameter(dataType, "precision", 10);
-                int scale = getIntParameter(dataType, "scale", 0);
-                return "DECIMAL(" + precision + "," + scale + ")";
-            case FLOAT:
-                return "FLOAT";
-            case DOUBLE:
-                return "DOUBLE";
-            case DATE:
-                return "DATE";
-            case TIME:
-                return "TIME";
-            case TIMESTAMP:
-                int timestampPrecision = getIntParameter(dataType, "precision", 0);
-                return timestampPrecision > 0 ? "TIMESTAMP(" + timestampPrecision + ")" : "TIMESTAMP";
-            case DATETIME:
-                int datetimePrecision = getIntParameter(dataType, "precision", 0);
-                return datetimePrecision > 0 ? "DATETIME(" + datetimePrecision + ")" : "DATETIME";
-            case BLOB:
-                String blobType = getStringParameter(dataType, "blobType", "BLOB");
-                return blobType;
-            case BINARY:
-                int binaryLength = getIntParameter(dataType, "length", 1);
-                return "BINARY(" + binaryLength + ")";
-            case VARBINARY:
-                int varbinaryLength = getIntParameter(dataType, "length", 255);
-                return "VARBINARY(" + varbinaryLength + ")";
-            case BOOLEAN:
-                return "BOOLEAN";
-            case JSON:
-                return "JSON";
-            case OTHER:
-            default:
-                return "VARCHAR(255)";
-        }
+    protected String getQuoteKeyWord() {
+        return MYSQL_QUOTE;
     }
 
     @Override
@@ -109,18 +52,15 @@ public class JQuickMySQLDialectProvider extends JQuickAbsSQLDialect {
         return "AUTO_INCREMENT";
     }
 
+
+
     @Override
     protected void appendTableOptions(StringBuilder sql, JQuickTableDefinition table) {
         super.appendTableOptions(sql, table);
-
-        // MySQL 特定选项
         sql.append(" ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-
-        // 处理 extensions 中的额外选项
         if (table.getExtensions() != null) {
             if (table.getExtensions().containsKey("engine")) {
                 String engine = table.getExtensions().get("engine").toString();
-                // 替换默认引擎
                 int engineStart = sql.indexOf(" ENGINE=");
                 int engineEnd = sql.indexOf(" ", engineStart + 8);
                 if (engineEnd == -1) {

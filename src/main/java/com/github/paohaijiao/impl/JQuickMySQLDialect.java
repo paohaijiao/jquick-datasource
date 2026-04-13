@@ -16,12 +16,13 @@
 package com.github.paohaijiao.impl;
 
 import com.github.paohaijiao.column.JQuickColumnDefinition;
-import com.github.paohaijiao.dataType.JQuickDataType;
-import com.github.paohaijiao.dataType.enums.JQuickDataTypeFamily;
+import com.github.paohaijiao.dataType.JQuickDataTypeConverter;
 import com.github.paohaijiao.dialect.JQuickAbsSQLDialect;
 import com.github.paohaijiao.dialect.JQuickSQLDialect;
 import com.github.paohaijiao.extra.JQuickIndexDefinition;
 import com.github.paohaijiao.table.JQuickTableDefinition;
+
+import java.util.Map;
 
 /**
  * SQL方言抽象基类
@@ -32,77 +33,10 @@ import com.github.paohaijiao.table.JQuickTableDefinition;
  * @since 2026/4/13
  */
 public  class JQuickMySQLDialect extends JQuickAbsSQLDialect implements JQuickSQLDialect {
+
     protected static final String MYSQL_QUOTE = "`";
 
-    @Override
-    protected String quoteIdentifier(String identifier) {
-        if (identifier == null || identifier.isEmpty()) {
-            return identifier;
-        }
-        if (identifier.startsWith(MYSQL_QUOTE) && identifier.endsWith(MYSQL_QUOTE)) {
-            return identifier;
-        }
-        return MYSQL_QUOTE + identifier + MYSQL_QUOTE;
-    }
 
-    @Override
-    protected String convertDataType(JQuickDataTypeFamily family, JQuickDataType dataType) {
-        switch (family) {
-            case VARCHAR:
-                int length = getIntParameter(dataType, "length", 255);
-                return "VARCHAR(" + length + ")";
-            case CHAR:
-                int charLength = getIntParameter(dataType, "length", 1);
-                return "CHAR(" + charLength + ")";
-            case TEXT:
-                String textType = getStringParameter(dataType, "textType", "TEXT");
-                return textType;
-            case CLOB:
-                return "LONGTEXT";
-            case INT:
-                return "INT";
-            case BIGINT:
-                return "BIGINT";
-            case SMALLINT:
-                return "SMALLINT";
-            case TINYINT:
-                return "TINYINT";
-            case DECIMAL:
-                int precision = getIntParameter(dataType, "precision", 10);
-                int scale = getIntParameter(dataType, "scale", 0);
-                return "DECIMAL(" + precision + "," + scale + ")";
-            case FLOAT:
-                return "FLOAT";
-            case DOUBLE:
-                return "DOUBLE";
-            case DATE:
-                return "DATE";
-            case TIME:
-                return "TIME";
-            case TIMESTAMP:
-                int timestampPrecision = getIntParameter(dataType, "precision", 0);
-                return timestampPrecision > 0 ? "TIMESTAMP(" + timestampPrecision + ")" : "TIMESTAMP";
-            case DATETIME:
-                int datetimePrecision = getIntParameter(dataType, "precision", 0);
-                return datetimePrecision > 0 ? "DATETIME(" + datetimePrecision + ")" : "DATETIME";
-            case BLOB:
-                String blobType = getStringParameter(dataType, "blobType", "BLOB");
-                return blobType;
-            case BINARY:
-                int binaryLength = getIntParameter(dataType, "length", 1);
-                return "BINARY(" + binaryLength + ")";
-            case VARBINARY:
-                int varbinaryLength = getIntParameter(dataType, "length", 255);
-                return "VARBINARY(" + varbinaryLength + ")";
-            case BOOLEAN:
-                return "BOOLEAN";
-            case JSON:
-                return "JSON";
-            case OTHER:
-            default:
-                return "VARCHAR(255)";
-        }
-    }
 
     @Override
     public String getAutoIncrementKeyword() {
@@ -110,26 +44,33 @@ public  class JQuickMySQLDialect extends JQuickAbsSQLDialect implements JQuickSQ
     }
 
     @Override
+    protected JQuickDataTypeConverter createDataTypeConvert() {
+        return null;
+    }
+
+    @Override
+    protected String getQuoteKeyWord() {
+        return MYSQL_QUOTE;
+    }
+
+    @Override
     protected void appendTableOptions(StringBuilder sql, JQuickTableDefinition table) {
-        super.appendTableOptions(sql, table);
-
-        // MySQL 特定选项
-        sql.append(" ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-
-        // 处理 extensions 中的额外选项
-        if (table.getExtensions() != null) {
-            if (table.getExtensions().containsKey("engine")) {
-                String engine = table.getExtensions().get("engine").toString();
-                // 替换默认引擎
-                int engineStart = sql.indexOf(" ENGINE=");
-                int engineEnd = sql.indexOf(" ", engineStart + 8);
-                if (engineEnd == -1) {
-                    engineEnd = sql.length();
+        super.appendTableOptions(sql, table);//comment on table
+        if (table.getExtensions() != null && !table.getExtensions().isEmpty()) {
+            for (Map.Entry<String, Object> entry : table.getExtensions().entrySet()) {
+                if ( entry.getKey() == null) {
+                    continue;
                 }
-                sql.replace(engineStart, engineEnd, " ENGINE=" + engine);
+                String key = entry.getKey().toLowerCase();
+                Object value = entry.getValue();
+                if (value == null) {
+                    continue;
+                }
+                sql.append(" ").append(key).append("=").append(value);
             }
         }
     }
+
 
     @Override
     public String buildIndex(JQuickIndexDefinition index) {
@@ -139,7 +80,6 @@ public  class JQuickMySQLDialect extends JQuickAbsSQLDialect implements JQuickSQ
             sb.append("UNIQUE ");
         }
         sb.append("INDEX ").append(quoteIdentifier(index.getIndexName())).append(" ");
-
         if (index.getType() != null) {
             switch (index.getType()) {
                 case BTREE:
@@ -199,8 +139,7 @@ public  class JQuickMySQLDialect extends JQuickAbsSQLDialect implements JQuickSQ
      * 构建 ALTER TABLE CHANGE COLUMN 语句（重命名列）
      */
     public String buildChangeColumn(String tableName, String oldName, JQuickColumnDefinition newColumn) {
-        return "ALTER TABLE " + quoteIdentifier(tableName) + " CHANGE "
-                + quoteIdentifier(oldName) + " " + buildColumnDefinition(newColumn);
+        return "ALTER TABLE " + quoteIdentifier(tableName) + " CHANGE " + quoteIdentifier(oldName) + " " + buildColumnDefinition(newColumn);
     }
 
     /**
