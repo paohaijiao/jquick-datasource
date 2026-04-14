@@ -52,6 +52,10 @@ public abstract class JQuickAbsSQLDialect implements JQuickSQLDialect {
     protected abstract JQuickDataTypeConverter createDataTypeConvert();
 
     protected abstract String getQuoteKeyWord();
+
+
+    protected abstract void appendTableOptions(StringBuilder sql, JQuickTableDefinition table);
+
     /**
      * 转换数据类型（子类必须实现）
      *
@@ -146,16 +150,6 @@ public abstract class JQuickAbsSQLDialect implements JQuickSQLDialect {
         if (sqlStr.endsWith(COMMA + NEW_LINE)) {
             sql.setLength(sql.length() - 2);
             sql.append(NEW_LINE);
-        }
-    }
-
-    /**
-     * 追加表级选项（引擎、字符集、注释等）
-     * 子类可覆盖此方法添加特定数据库的表选项
-     */
-    protected void appendTableOptions(StringBuilder sql, JQuickTableDefinition table) {
-        if (table.getComment() != null && !table.getComment().isEmpty()) {
-            sql.append(" COMMENT = '").append(escapeString(table.getComment())).append("'");
         }
     }
 

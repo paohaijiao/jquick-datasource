@@ -148,24 +148,23 @@ public class JQuickKingbaseESDialect extends JQuickAbsSQLDialect {
         }
         if (index.getType() != null) {
             switch (index.getType()) {
-                case BTREE:
+                case "BTREE":
                     sb.append("INDEX ").append(quoteIdentifier(index.getIndexName()));
                     sb.append(" USING BTREE");
                     break;
-                case HASH:
+                case "HASH":
                     sb.append("INDEX ").append(quoteIdentifier(index.getIndexName()));
                     sb.append(" USING HASH");
                     break;
-                case GIST:
+                case "GIST":
                     sb.append("INDEX ").append(quoteIdentifier(index.getIndexName()));
                     sb.append(" USING GIST");
                     break;
-                case GIN:
+                case "GIN":
                     sb.append("INDEX ").append(quoteIdentifier(index.getIndexName()));
                     sb.append(" USING GIN");
                     break;
-                case FULLTEXT:
-                    // KingbaseES 全文索引使用 GIN
+                case "FULLTEXT":
                     sb.append("INDEX ").append(quoteIdentifier(index.getIndexName()));
                     sb.append(" USING GIN");
                     break;

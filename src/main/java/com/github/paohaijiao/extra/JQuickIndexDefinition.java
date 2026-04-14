@@ -36,7 +36,7 @@ public class JQuickIndexDefinition {
 
     private boolean unique;
 
-    private JQuickIndexType type; // BTREE, HASH, FULLTEXT
+    private String type; // BTREE, HASH, FULLTEXT
 
     private String comment;
 

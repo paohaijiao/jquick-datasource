@@ -17,6 +17,7 @@ package com.github.paohaijiao.impl;
 
 import com.github.paohaijiao.column.JQuickColumnDefinition;
 import com.github.paohaijiao.dataType.JQuickDataTypeConverter;
+import com.github.paohaijiao.dataType.impl.JQuickMySQLDataTypeConverter;
 import com.github.paohaijiao.dialect.JQuickAbsSQLDialect;
 import com.github.paohaijiao.dialect.JQuickSQLDialect;
 import com.github.paohaijiao.extra.JQuickIndexDefinition;
@@ -45,7 +46,7 @@ public  class JQuickMySQLDialect extends JQuickAbsSQLDialect implements JQuickSQ
 
     @Override
     protected JQuickDataTypeConverter createDataTypeConvert() {
-        return null;
+        return new JQuickMySQLDataTypeConverter();
     }
 
     @Override
@@ -53,9 +54,13 @@ public  class JQuickMySQLDialect extends JQuickAbsSQLDialect implements JQuickSQ
         return MYSQL_QUOTE;
     }
 
+
+
     @Override
     protected void appendTableOptions(StringBuilder sql, JQuickTableDefinition table) {
-        super.appendTableOptions(sql, table);//comment on table
+        if (table.getComment() != null && !table.getComment().isEmpty()) {
+            sql.append(" COMMENT = '").append(escapeString(table.getComment())).append("'");
+        }
         if (table.getExtensions() != null && !table.getExtensions().isEmpty()) {
             for (Map.Entry<String, Object> entry : table.getExtensions().entrySet()) {
                 if ( entry.getKey() == null) {
@@ -82,13 +87,13 @@ public  class JQuickMySQLDialect extends JQuickAbsSQLDialect implements JQuickSQ
         sb.append("INDEX ").append(quoteIdentifier(index.getIndexName())).append(" ");
         if (index.getType() != null) {
             switch (index.getType()) {
-                case BTREE:
+                case "BTREE":
                     sb.append("USING BTREE ");
                     break;
-                case HASH:
+                case "HASH":
                     sb.append("USING HASH ");
                     break;
-                case FULLTEXT:
+                case "FULLTEXT":
                     sb.append("FULLTEXT ");
                     break;
                 default:
@@ -99,7 +104,6 @@ public  class JQuickMySQLDialect extends JQuickAbsSQLDialect implements JQuickSQ
         sb.append("ON ").append("${tableName}").append(" (");
         sb.append(formatColumnList(index.getColumns()));
         sb.append(")");
-
         if (index.getComment() != null && !index.getComment().isEmpty()) {
             sb.append(" COMMENT '").append(escapeString(index.getComment())).append("'");
         }
