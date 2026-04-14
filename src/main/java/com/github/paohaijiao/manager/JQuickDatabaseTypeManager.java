@@ -37,6 +37,7 @@ package com.github.paohaijiao.manager;
  *
  * Copyright (c) [2025-2099] Martin (goudingcheng@gmail.com)
  */
+import com.github.paohaijiao.console.JConsole;
 import com.github.paohaijiao.dialect.JQuickSQLDialect;
 import com.github.paohaijiao.provider.JQuickSQLDialectProvider;
 
@@ -55,7 +56,7 @@ import java.util.logging.Logger;
  */
 public class JQuickDatabaseTypeManager {
 
-    private static final Logger LOGGER = Logger.getLogger(JQuickDatabaseTypeManager.class.getName());
+    private JConsole console=new JConsole();
 
     private static volatile JQuickDatabaseTypeManager instance;
 
@@ -121,13 +122,13 @@ public class JQuickDatabaseTypeManager {
         List<JQuickSQLDialectProvider> providers = new ArrayList<>();
         for (JQuickSQLDialectProvider provider : loader) {
             providers.add(provider);
-            LOGGER.info("发现方言提供者: " + provider.getClass().getName() + ", 数据库类型: " + provider.getDatabaseType());
+            console.info("发现方言提供者: " + provider.getClass().getName() + ", 数据库类型: " + provider.getDatabaseType());
         }
         providers.sort(Comparator.comparingInt(JQuickSQLDialectProvider::getPriority));
         for (JQuickSQLDialectProvider provider : providers) {
             registerDialectProvider(provider);
         }
-        LOGGER.info("通过 ServiceLoader 加载了 " + providers.size() + " 个方言提供者");
+        console.info("通过 ServiceLoader 加载了 " + providers.size() + " 个方言提供者");
     }
 
     /**
@@ -139,7 +140,7 @@ public class JQuickDatabaseTypeManager {
         lock.writeLock().lock();
         try {
             providerMap.put(dbType, provider);
-            LOGGER.info("注册方言提供者: " + dbType + " -> " + provider.getClass().getName());
+            console.info("注册方言提供者: " + dbType + " -> " + provider.getClass().getName());
         } finally {
             lock.writeLock().unlock();
         }
@@ -161,7 +162,7 @@ public class JQuickDatabaseTypeManager {
         lock.writeLock().lock();
         try {
             dialectMap.put(dbType, dialect);
-            LOGGER.info("注册方言: " + dbType + " -> " + dialect.getClass().getName());
+            console.info("注册方言: " + dbType + " -> " + dialect.getClass().getName());
         } finally {
             lock.writeLock().unlock();
         }
@@ -180,7 +181,7 @@ public class JQuickDatabaseTypeManager {
             for (Map.Entry<String, JQuickSQLDialect> entry : dialects.entrySet()) {
                 String dbType = entry.getKey().toLowerCase();
                 dialectMap.put(dbType, entry.getValue());
-                LOGGER.info("注册方言: " + dbType + " -> " + entry.getValue().getClass().getName());
+                console.info("注册方言: " + dbType + " -> " + entry.getValue().getClass().getName());
             }
         } finally {
             lock.writeLock().unlock();
@@ -206,29 +207,24 @@ public class JQuickDatabaseTypeManager {
         } finally {
             lock.readLock().unlock();
         }
-
-        // 如果没有缓存，尝试通过提供者创建
         lock.writeLock().lock();
         try {
-            // 双重检查
             if (dialectMap.containsKey(dbType)) {
                 return dialectMap.get(dbType);
             }
-
             JQuickSQLDialectProvider provider = providerMap.get(dbType);
             if (provider != null) {
                 JQuickSQLDialect newDialect = provider.createDialect();
                 if (newDialect != null) {
                     dialectMap.put(dbType, newDialect);
-                    LOGGER.info("通过提供者创建方言: " + dbType);
+                    console.info("通过提供者创建方言: " + dbType);
                     return newDialect;
                 }
             }
         } finally {
             lock.writeLock().unlock();
         }
-
-        LOGGER.warning("未找到数据库类型的方言: " + databaseType);
+        console.warn("未找到数据库类型的方言: " + databaseType);
         return null;
     }
 
@@ -252,22 +248,17 @@ public class JQuickDatabaseTypeManager {
         if (jdbcUrl == null || jdbcUrl.trim().isEmpty()) {
             return null;
         }
-
         String lowerUrl = jdbcUrl.toLowerCase();
-
-        // 根据 URL 模式匹配
         for (Map.Entry<String, String> entry : urlPatternMap.entrySet()) {
             if (lowerUrl.contains(entry.getKey())) {
                 String dbType = entry.getValue();
                 JQuickSQLDialect dialect = getDialect(dbType);
                 if (dialect != null) {
-                    LOGGER.info("通过 JDBC URL 检测到数据库类型: " + dbType + ", URL: " + jdbcUrl);
+                    console.info("通过 JDBC URL 检测到数据库类型: " + dbType + ", URL: " + jdbcUrl);
                     return dialect;
                 }
             }
         }
-
-        // 尝试通过提供者的 supports 方法检测
         lock.readLock().lock();
         try {
             for (Map.Entry<String, JQuickSQLDialectProvider> entry : providerMap.entrySet()) {
@@ -275,7 +266,7 @@ public class JQuickDatabaseTypeManager {
                 if (provider.supports(jdbcUrl)) {
                     JQuickSQLDialect dialect = getDialect(entry.getKey());
                     if (dialect != null) {
-                        LOGGER.info("通过提供者检测到数据库类型: " + entry.getKey() + ", URL: " + jdbcUrl);
+                        console.info("通过提供者检测到数据库类型: " + entry.getKey() + ", URL: " + jdbcUrl);
                         return dialect;
                     }
                 }
@@ -283,8 +274,7 @@ public class JQuickDatabaseTypeManager {
         } finally {
             lock.readLock().unlock();
         }
-
-        LOGGER.warning("无法从 JDBC URL 检测数据库类型: " + jdbcUrl);
+        console.warn("无法从 JDBC URL 检测数据库类型: " + jdbcUrl);
         return null;
     }
 
@@ -297,9 +287,7 @@ public class JQuickDatabaseTypeManager {
         if (databaseType == null || databaseType.trim().isEmpty()) {
             return false;
         }
-
         String dbType = databaseType.toLowerCase();
-
         lock.readLock().lock();
         try {
             return dialectMap.containsKey(dbType) || providerMap.containsKey(dbType);
@@ -317,14 +305,12 @@ public class JQuickDatabaseTypeManager {
         if (databaseType == null || databaseType.trim().isEmpty()) {
             return null;
         }
-
         String dbType = databaseType.toLowerCase();
-
         lock.writeLock().lock();
         try {
             JQuickSQLDialect removed = dialectMap.remove(dbType);
             if (removed != null) {
-                LOGGER.info("移除方言: " + dbType);
+                console.info("移除方言: " + dbType);
             }
             return removed;
         } finally {
@@ -368,7 +354,7 @@ public class JQuickDatabaseTypeManager {
         lock.writeLock().lock();
         try {
             dialectMap.clear();
-            LOGGER.info("清空所有方言缓存");
+            console.info("清空所有方言缓存");
         } finally {
             lock.writeLock().unlock();
         }
@@ -380,13 +366,10 @@ public class JQuickDatabaseTypeManager {
     public void reload() {
         lock.writeLock().lock();
         try {
-            // 清空现有缓存
             dialectMap.clear();
             providerMap.clear();
-
-            // 重新加载
             loadDialectsFromServiceLoader();
-            LOGGER.info("重新加载所有方言完成");
+            console.info("重新加载所有方言完成");
         } finally {
             lock.writeLock().unlock();
         }
