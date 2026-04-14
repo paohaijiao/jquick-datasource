@@ -34,6 +34,7 @@ package com.github.paohaijiao.dataType;
 import com.github.paohaijiao.dataType.enums.JQuickDataTypeFamily;
 import com.github.paohaijiao.dataType.impl.JQuickDefaultDataTypeConverter;
 import com.github.paohaijiao.dataType.impl.JQuickKingbaseESDataTypeConverter;
+import com.github.paohaijiao.dataType.impl.JQuickMariaDbSQLDataTypeConverter;
 import com.github.paohaijiao.dataType.impl.JQuickMySQLDataTypeConverter;
 import com.github.paohaijiao.dialect.JQuickSQLDialect;
 
@@ -91,7 +92,7 @@ public class JQuickDataTypeFamilyManager {
      */
     private void initDefaultConverters() {
         registerConverter("mysql", new JQuickMySQLDataTypeConverter());
-        registerConverter("mariadb", new JQuickMySQLDataTypeConverter());
+        registerConverter("mariadb", new JQuickMariaDbSQLDataTypeConverter());
         registerConverter("kingbasees", new JQuickKingbaseESDataTypeConverter());
         registerConverter("postgresql", new JQuickKingbaseESDataTypeConverter());
         registerConverter("default", new JQuickDefaultDataTypeConverter());
