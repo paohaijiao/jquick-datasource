@@ -44,6 +44,7 @@ public class JQuickIndexDefinition {
 
     private String whereCondition;
 
+    private  List<String> includeColumns;//db2
     private String fileGroup;//dm
 
     private boolean local;//dm

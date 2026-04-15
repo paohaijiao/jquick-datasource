@@ -18,6 +18,7 @@ package com.github.paohaijiao.extra;
 import com.github.paohaijiao.enums.JQuickForeignKeyAction;
 import lombok.Data;
 
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -41,4 +42,5 @@ public class JQuickForeignKeyConstraint {
     private JQuickForeignKeyAction onDelete;
 
     private JQuickForeignKeyAction onUpdate;
+    private HashMap<String,Object> extensions =new HashMap<String,Object> ();
 }
