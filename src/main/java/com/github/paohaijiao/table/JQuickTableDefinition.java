@@ -39,6 +39,8 @@ public class JQuickTableDefinition {
 
     private String tableName;
 
+    private boolean quoteEnabled=false;
+
     private String comment;
 
     private List<JQuickColumnDefinition> columns = new ArrayList<>();

@@ -57,44 +57,44 @@ public class JQuickKingbaseESDialect extends JQuickAbsSQLDialect {
 
 
     @Override
-    public String getAutoIncrementKeyword() {
+    public String getAutoIncrementKeyword(JQuickTableDefinition tableDefinition) {
         return "SERIAL";
     }
 
     @Override
-    public String buildModifyColumn(String tableName, JQuickColumnDefinition column) {
-        return "ALTER TABLE " + quoteIdentifier(tableName) + " ALTER COLUMN " + quoteIdentifier(column.getColumnName()) + " TYPE " + getDataTypeString(column.getDataType());
+    public String buildModifyColumn(JQuickTableDefinition tableDefinition,String tableName, JQuickColumnDefinition column) {
+        return "ALTER TABLE " + quoteIdentifier(tableDefinition,tableName) + " ALTER COLUMN " + quoteIdentifier(tableDefinition,column.getColumnName()) + " TYPE " + getDataTypeString(tableDefinition,column.getDataType());
     }
 
     @Override
-    public String buildChangeColumn(String tableName, String oldName, JQuickColumnDefinition newColumn) {
+    public String buildChangeColumn(JQuickTableDefinition tableDefinition,String tableName, String oldName, JQuickColumnDefinition newColumn) {
         StringBuilder sb = new StringBuilder();
         if (!oldName.equals(newColumn.getColumnName())) {
-            sb.append("ALTER TABLE ").append(quoteIdentifier(tableName)).append(" RENAME COLUMN ").append(quoteIdentifier(oldName)).append(" TO ").append(quoteIdentifier(newColumn.getColumnName())).append(";\n");
+            sb.append("ALTER TABLE ").append(quoteIdentifier(tableDefinition,tableName)).append(" RENAME COLUMN ").append(quoteIdentifier(tableDefinition,oldName)).append(" TO ").append(quoteIdentifier(tableDefinition,newColumn.getColumnName())).append(";\n");
         }
-        sb.append("ALTER TABLE ").append(quoteIdentifier(tableName)).append(" ALTER COLUMN ").append(quoteIdentifier(newColumn.getColumnName())).append(" TYPE ").append(getDataTypeString(newColumn.getDataType()));
+        sb.append("ALTER TABLE ").append(quoteIdentifier(tableDefinition,tableName)).append(" ALTER COLUMN ").append(quoteIdentifier(tableDefinition,newColumn.getColumnName())).append(" TYPE ").append(getDataTypeString(tableDefinition,newColumn.getDataType()));
         return sb.toString();
     }
 
     @Override
-    public String buildShowCreateTable(String tableName) {
-        return "SELECT pg_get_tabledef('" + quoteIdentifier(tableName) + "')";
+    public String buildShowCreateTable(JQuickTableDefinition tableDefinition,String tableName) {
+        return "SELECT pg_get_tabledef('" + quoteIdentifier(tableDefinition,tableName) + "')";
     }
 
     @Override
-    public String buildDescribeTable(String tableName) {
+    public String buildDescribeTable(JQuickTableDefinition tableDefinition,String tableName) {
         return "SELECT column_name, data_type, is_nullable, column_default " + "FROM information_schema.columns " + "WHERE table_name = '" + tableName + "' " + "ORDER BY ordinal_position";
     }
 
     @Override
-    public String buildInsert(JQuickRow row, JQuickTableDefinition table) {
+    public String buildInsert(JQuickTableDefinition table,JQuickRow row ) {
         if (row == null || row.isEmpty() || table == null) {
             return "";
         }
         StringBuilder sb = new StringBuilder();
-        sb.append("INSERT INTO ").append(quoteIdentifier(table.getTableName())).append(" (");
+        sb.append("INSERT INTO ").append(quoteIdentifier(table,table.getTableName())).append(" (");
         List<String> columns = new ArrayList<>(row.keySet());
-        sb.append(columns.stream().map(this::quoteIdentifier).collect(Collectors.joining(", ")));
+        sb.append(columns.stream().map(e->quoteIdentifier(table,e)).collect(Collectors.joining(", ")));
         sb.append(") VALUES (");
         List<String> values = new ArrayList<>();
         for (String col : columns) {
@@ -104,22 +104,22 @@ public class JQuickKingbaseESDialect extends JQuickAbsSQLDialect {
         sb.append(")");
         if (!table.getPrimaryKeys().isEmpty()) {
             String pkColumn = table.getPrimaryKeys().get(0).getColumns().get(0);
-            sb.append(" RETURNING ").append(quoteIdentifier(pkColumn));
+            sb.append(" RETURNING ").append(quoteIdentifier(table,pkColumn));
         }
 
         return sb.toString();
     }
 
     @Override
-    public String buildUpdate(JQuickRow row, JQuickTableDefinition table, String whereClause) {
+    public String buildUpdate(JQuickTableDefinition table,JQuickRow row,  String whereClause) {
         if (row == null || row.isEmpty() || table == null) {
             return "";
         }
         StringBuilder sb = new StringBuilder();
-        sb.append("UPDATE ").append(quoteIdentifier(table.getTableName())).append(" SET ");
+        sb.append("UPDATE ").append(quoteIdentifier(table,table.getTableName())).append(" SET ");
         List<String> setClauses = new ArrayList<>();
         for (Map.Entry<String, Object> entry : row.entrySet()) {
-            setClauses.add(quoteIdentifier(entry.getKey()) + " = " + formatValue(entry.getValue()));
+            setClauses.add(quoteIdentifier(table,entry.getKey()) + " = " + formatValue(entry.getValue()));
         }
         sb.append(String.join(", ", setClauses));
         if (whereClause != null && !whereClause.trim().isEmpty()) {
@@ -134,7 +134,7 @@ public class JQuickKingbaseESDialect extends JQuickAbsSQLDialect {
             return "";
         }
         StringBuilder sb = new StringBuilder();
-        sb.append("DELETE FROM ").append(quoteIdentifier(table.getTableName()));
+        sb.append("DELETE FROM ").append(quoteIdentifier(table,table.getTableName()));
         if (whereClause != null && !whereClause.trim().isEmpty()) {
             sb.append(" WHERE ").append(whereClause);
         }
@@ -151,9 +151,9 @@ public class JQuickKingbaseESDialect extends JQuickAbsSQLDialect {
         if (columns == null || columns.isEmpty()) {
             sb.append("*");
         } else {
-            sb.append(columns.stream().map(this::quoteIdentifier).collect(Collectors.joining(", ")));
+            sb.append(columns.stream().map(e->quoteIdentifier(table,e)).collect(Collectors.joining(", ")));
         }
-        sb.append(" FROM ").append(quoteIdentifier(table.getTableName()));
+        sb.append(" FROM ").append(quoteIdentifier(table,table.getTableName()));
         if (whereClause != null && !whereClause.trim().isEmpty()) {
             sb.append(" WHERE ").append(whereClause);
         }
@@ -180,7 +180,7 @@ public class JQuickKingbaseESDialect extends JQuickAbsSQLDialect {
         if (table.getExtensions() != null) {
             if (table.getExtensions().containsKey("tablespace")) {
                 String tablespace = table.getExtensions().get("tablespace").toString();
-                sql.append(" TABLESPACE ").append(quoteIdentifier(tablespace));
+                sql.append(" TABLESPACE ").append(quoteIdentifier(table,tablespace));
             }
         }
     }
@@ -245,7 +245,7 @@ public class JQuickKingbaseESDialect extends JQuickAbsSQLDialect {
     }
 
     @Override
-    public String buildIndex(JQuickIndexDefinition index) {
+    public String buildIndex(JQuickTableDefinition table, JQuickIndexDefinition index) {
         StringBuilder sb = new StringBuilder();
         sb.append("CREATE ");
         if (index.isUnique()) {
@@ -254,35 +254,35 @@ public class JQuickKingbaseESDialect extends JQuickAbsSQLDialect {
         if (index.getType() != null) {
             switch (index.getType()) {
                 case "BTREE":
-                    sb.append("INDEX ").append(quoteIdentifier(index.getIndexName()));
+                    sb.append("INDEX ").append(quoteIdentifier(table,index.getIndexName()));
                     sb.append(" USING BTREE");
                     break;
                 case "HASH":
-                    sb.append("INDEX ").append(quoteIdentifier(index.getIndexName()));
+                    sb.append("INDEX ").append(quoteIdentifier(table,index.getIndexName()));
                     sb.append(" USING HASH");
                     break;
                 case "GIST":
-                    sb.append("INDEX ").append(quoteIdentifier(index.getIndexName()));
+                    sb.append("INDEX ").append(quoteIdentifier(table,index.getIndexName()));
                     sb.append(" USING GIST");
                     break;
                 case "GIN":
-                    sb.append("INDEX ").append(quoteIdentifier(index.getIndexName()));
+                    sb.append("INDEX ").append(quoteIdentifier(table,index.getIndexName()));
                     sb.append(" USING GIN");
                     break;
                 case "FULLTEXT":
-                    sb.append("INDEX ").append(quoteIdentifier(index.getIndexName()));
+                    sb.append("INDEX ").append(quoteIdentifier(table,index.getIndexName()));
                     sb.append(" USING GIN");
                     break;
                 default:
-                    sb.append("INDEX ").append(quoteIdentifier(index.getIndexName()));
+                    sb.append("INDEX ").append(quoteIdentifier(table,index.getIndexName()));
                     break;
             }
         } else {
-            sb.append("INDEX ").append(quoteIdentifier(index.getIndexName()));
+            sb.append("INDEX ").append(quoteIdentifier(table,index.getIndexName()));
         }
 
         sb.append(" ON ").append("${tableName}").append(" (");
-        sb.append(formatColumnList(index.getColumns()));
+        sb.append(formatColumnList(table,index.getColumns()));
         sb.append(")");
         if (index.getComment() != null && !index.getComment().isEmpty()) {
             sb.append(" WHERE ").append(index.getComment());
@@ -294,17 +294,17 @@ public class JQuickKingbaseESDialect extends JQuickAbsSQLDialect {
 
 
     @Override
-    public String buildCreateTable(JQuickTableDefinition table) {
+    public String buildCreateTable(JQuickTableDefinition tableDefinition) {
         StringBuilder sql = new StringBuilder();
-        sql.append("CREATE TABLE ").append(quoteIdentifier(table.getTableName())).append(" (\n");
-        appendColumnDefinitions(sql, table);
-        appendPrimaryKey(sql, table);
-        appendUniqueConstraints(sql, table);
-        appendForeignKeys(sql, table);
+        sql.append("CREATE TABLE ").append(quoteIdentifier(tableDefinition,tableDefinition.getTableName())).append(" (\n");
+        appendColumnDefinitions(sql, tableDefinition);
+        appendPrimaryKey(sql, tableDefinition);
+        appendUniqueConstraints(sql, tableDefinition);
+        appendForeignKeys(sql, tableDefinition);
         removeTrailingComma(sql);
         sql.append(")");
-        appendTableOptions(sql, table);
-        String tableComment = buildTableComment(table);
+        appendTableOptions(sql, tableDefinition);
+        String tableComment = buildTableComment(tableDefinition);
         if (tableComment != null && !tableComment.isEmpty()) {
             sql.append(";\n").append(tableComment);
         }
@@ -316,7 +316,7 @@ public class JQuickKingbaseESDialect extends JQuickAbsSQLDialect {
      */
     protected String buildTableComment(JQuickTableDefinition table) {
         if (table.getComment() != null && !table.getComment().isEmpty()) {
-            return "COMMENT ON TABLE " + quoteIdentifier(table.getTableName()) + " IS '" + escapeString(table.getComment()) + "'";
+            return "COMMENT ON TABLE " + quoteIdentifier(table,table.getTableName()) + " IS '" + escapeString(table.getComment()) + "'";
         }
         return null;
     }
@@ -324,10 +324,10 @@ public class JQuickKingbaseESDialect extends JQuickAbsSQLDialect {
     /**
      * 构建列注释语句
      */
-    public String buildColumnComment(String tableName, JQuickColumnDefinition column) {
+    public String buildColumnComment(JQuickTableDefinition table,String tableName, JQuickColumnDefinition column) {
         if (column.getComment() != null && !column.getComment().isEmpty()) {
-            return "COMMENT ON COLUMN " + quoteIdentifier(tableName) + "."
-                    + quoteIdentifier(column.getColumnName())
+            return "COMMENT ON COLUMN " + quoteIdentifier(table,tableName) + "."
+                    + quoteIdentifier(table,column.getColumnName())
                     + " IS '" + escapeString(column.getComment()) + "'";
         }
         return null;
@@ -336,9 +336,9 @@ public class JQuickKingbaseESDialect extends JQuickAbsSQLDialect {
     /**
      * 构建所有列注释语句
      */
-    public String[] buildAllColumnComments(String tableName, JQuickTableDefinition table) {
+    public String[] buildAllColumnComments(JQuickTableDefinition table,String tableName) {
         return table.getColumns().stream()
-                .map(col -> buildColumnComment(tableName, col))
+                .map(col -> buildColumnComment(table,tableName, col))
                 .filter(comment -> comment != null && !comment.isEmpty())
                 .toArray(String[]::new);
     }
@@ -350,7 +350,7 @@ public class JQuickKingbaseESDialect extends JQuickAbsSQLDialect {
         StringBuilder fullSql = new StringBuilder();
         fullSql.append(buildCreateTable(table));
         for (JQuickColumnDefinition column : table.getColumns()) {
-            String columnComment = buildColumnComment(table.getTableName(), column);
+            String columnComment = buildColumnComment(table,table.getTableName(), column);
             if (columnComment != null && !columnComment.isEmpty()) {
                 fullSql.append(";\n").append(columnComment);
             }
@@ -362,23 +362,23 @@ public class JQuickKingbaseESDialect extends JQuickAbsSQLDialect {
     /**
      * 构建创建序列语句（用于自增列）
      */
-    public String buildCreateSequence(String sequenceName) {
-        return "CREATE SEQUENCE IF NOT EXISTS " + quoteIdentifier(sequenceName);
+    public String buildCreateSequence(JQuickTableDefinition table,String sequenceName) {
+        return "CREATE SEQUENCE IF NOT EXISTS " + quoteIdentifier(table,sequenceName);
     }
 
     /**
      * 构建创建自增列序列语句
      */
-    public String buildCreateSequenceForColumn(String tableName, String columnName) {
+    public String buildCreateSequenceForColumn(JQuickTableDefinition table,String tableName, String columnName) {
         String seqName = tableName + "_" + columnName + SEQ_SUFFIX;
-        return buildCreateSequence(seqName);
+        return buildCreateSequence(table,seqName);
     }
 
     /**
      * 构建设置序列起始值语句
      */
-    public String buildSetSequenceStartValue(String sequenceName, long startValue) {
-        return "ALTER SEQUENCE " + quoteIdentifier(sequenceName) + " START WITH " + startValue;
+    public String buildSetSequenceStartValue(JQuickTableDefinition table,String sequenceName, long startValue) {
+        return "ALTER SEQUENCE " + quoteIdentifier(table,sequenceName) + " START WITH " + startValue;
     }
 
     /**
@@ -398,65 +398,65 @@ public class JQuickKingbaseESDialect extends JQuickAbsSQLDialect {
     /**
      * 构建 ALTER COLUMN 设置默认值语句
      */
-    public String buildSetDefaultValue(String tableName, String columnName, Object defaultValue) {
-        return "ALTER TABLE " + quoteIdentifier(tableName)
-                + " ALTER COLUMN " + quoteIdentifier(columnName)
+    public String buildSetDefaultValue(JQuickTableDefinition table,String tableName, String columnName, Object defaultValue) {
+        return "ALTER TABLE " + quoteIdentifier(table,tableName)
+                + " ALTER COLUMN " + quoteIdentifier(table,columnName)
                 + " SET DEFAULT " + formatDefaultValue(defaultValue);
     }
 
     /**
      * 构建 ALTER COLUMN 删除默认值语句
      */
-    public String buildDropDefaultValue(String tableName, String columnName) {
-        return "ALTER TABLE " + quoteIdentifier(tableName) + " ALTER COLUMN " + quoteIdentifier(columnName) + " DROP DEFAULT";
+    public String buildDropDefaultValue(JQuickTableDefinition table,String tableName, String columnName) {
+        return "ALTER TABLE " + quoteIdentifier(table,tableName) + " ALTER COLUMN " + quoteIdentifier(table,columnName) + " DROP DEFAULT";
     }
 
     /**
      * 构建 ALTER COLUMN 设置 NOT NULL 语句
      */
-    public String buildSetNotNull(String tableName, String columnName) {
-        return "ALTER TABLE " + quoteIdentifier(tableName) + " ALTER COLUMN " + quoteIdentifier(columnName) + " SET NOT NULL";
+    public String buildSetNotNull(JQuickTableDefinition table,String tableName, String columnName) {
+        return "ALTER TABLE " + quoteIdentifier(table,tableName) + " ALTER COLUMN " + quoteIdentifier(table,columnName) + " SET NOT NULL";
     }
 
     /**
      * 构建 ALTER COLUMN 删除 NOT NULL 语句
      */
-    public String buildDropNotNull(String tableName, String columnName) {
-        return "ALTER TABLE " + quoteIdentifier(tableName) + " ALTER COLUMN " + quoteIdentifier(columnName) + " DROP NOT NULL";
+    public String buildDropNotNull(JQuickTableDefinition table,String tableName, String columnName) {
+        return "ALTER TABLE " + quoteIdentifier(table,tableName) + " ALTER COLUMN " + quoteIdentifier(table,columnName) + " DROP NOT NULL";
     }
 
     /**
      * 构建 RENAME COLUMN 语句
      */
-    public String buildRenameColumn(String tableName, String oldName, String newName) {
-        return "ALTER TABLE " + quoteIdentifier(tableName) + " RENAME COLUMN " + quoteIdentifier(oldName) + " TO " + quoteIdentifier(newName);
+    public String buildRenameColumn(JQuickTableDefinition table,String tableName, String oldName, String newName) {
+        return "ALTER TABLE " + quoteIdentifier(table,tableName) + " RENAME COLUMN " + quoteIdentifier(table,oldName) + " TO " + quoteIdentifier(table,newName);
     }
 
     /**
      * 构建 ALTER COLUMN TYPE 语句
      */
-    public String buildAlterColumnType(String tableName, String columnName, JQuickDataType newDataType) {
-        return "ALTER TABLE " + quoteIdentifier(tableName) + " ALTER COLUMN " + quoteIdentifier(columnName) + " TYPE " + getDataTypeString(newDataType);
+    public String buildAlterColumnType(JQuickTableDefinition table,String tableName, String columnName, JQuickDataType newDataType) {
+        return "ALTER TABLE " + quoteIdentifier(table,tableName) + " ALTER COLUMN " + quoteIdentifier(table,columnName) + " TYPE " + getDataTypeString(table,newDataType);
     }
 
     /**
      * 构建 DROP CONSTRAINT 语句
      */
-    public String buildDropConstraint(String tableName, String constraintName) {
-        return "ALTER TABLE " + quoteIdentifier(tableName) + " DROP CONSTRAINT " + quoteIdentifier(constraintName);
+    public String buildDropConstraint(JQuickTableDefinition table,String tableName, String constraintName) {
+        return "ALTER TABLE " + quoteIdentifier(table,tableName) + " DROP CONSTRAINT " + quoteIdentifier(table,constraintName);
     }
 
     /**
      * 构建 VACUUM 语句（KingbaseES 优化）
      */
-    public String buildVacuum(String tableName) {
-        return "VACUUM " + quoteIdentifier(tableName);
+    public String buildVacuum(JQuickTableDefinition table,String tableName) {
+        return "VACUUM " + quoteIdentifier(table,tableName);
     }
 
     /**
      * 构建 ANALYZE 语句（更新统计信息）
      */
-    public String buildAnalyze(String tableName) {
-        return "ANALYZE " + quoteIdentifier(tableName);
+    public String buildAnalyze(JQuickTableDefinition tableDefinition,String tableName) {
+        return "ANALYZE " + quoteIdentifier(tableDefinition,tableName);
     }
 }

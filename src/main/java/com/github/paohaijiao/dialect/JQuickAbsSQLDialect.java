@@ -40,7 +40,8 @@ import java.util.stream.Collectors;
  * @since 2026/4/13
  */
 public abstract class JQuickAbsSQLDialect implements JQuickSQLDialect {
-    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+   private static SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     protected static final String NEW_LINE = "\n";
 
@@ -72,7 +73,7 @@ public abstract class JQuickAbsSQLDialect implements JQuickSQLDialect {
     @Override
     public String buildCreateTable(JQuickTableDefinition table) {
         StringBuilder sql = new StringBuilder();
-        sql.append("CREATE TABLE ").append(quoteIdentifier(table.getTableName())).append(" (\n");
+        sql.append("CREATE TABLE ").append(quoteIdentifier(table,table.getTableName())).append(" (\n");
         appendColumnDefinitions(sql, table);
         appendPrimaryKey(sql, table);
         appendUniqueConstraints(sql, table);
@@ -89,7 +90,7 @@ public abstract class JQuickAbsSQLDialect implements JQuickSQLDialect {
     protected void appendColumnDefinitions(StringBuilder sql, JQuickTableDefinition table) {
         List<JQuickColumnDefinition> columns = table.getColumns();
         for (int i = 0; i < columns.size(); i++) {
-            sql.append(INDENT).append(buildColumnDefinition(columns.get(i)));
+            sql.append(INDENT).append(buildColumnDefinition(table,columns.get(i)));
             boolean hasMore = i < columns.size() - 1 ||
                     !table.getPrimaryKeys().isEmpty() ||
                     !table.getUniqueConstraints().isEmpty() ||
@@ -107,7 +108,7 @@ public abstract class JQuickAbsSQLDialect implements JQuickSQLDialect {
      */
     protected void appendPrimaryKey(StringBuilder sql, JQuickTableDefinition table) {
         if (!table.getPrimaryKeys().isEmpty()) {
-            sql.append(INDENT).append(buildPrimaryKey(table.getPrimaryKeys().get(0)));
+            sql.append(INDENT).append(buildPrimaryKey(table,table.getPrimaryKeys().get(0)));
             if (!table.getUniqueConstraints().isEmpty() || !table.getForeignKeys().isEmpty()) {
                 sql.append(COMMA);
             }
@@ -121,7 +122,7 @@ public abstract class JQuickAbsSQLDialect implements JQuickSQLDialect {
     protected void appendUniqueConstraints(StringBuilder sql, JQuickTableDefinition table) {
         List<JQuickUniqueConstraint> uniqueConstraints = table.getUniqueConstraints();
         for (int i = 0; i < uniqueConstraints.size(); i++) {
-            sql.append(INDENT).append(buildUniqueConstraint(uniqueConstraints.get(i)));
+            sql.append(INDENT).append(buildUniqueConstraint(table,uniqueConstraints.get(i)));
             if (i < uniqueConstraints.size() - 1 || !table.getForeignKeys().isEmpty()) {
                 sql.append(COMMA);
             }
@@ -135,7 +136,7 @@ public abstract class JQuickAbsSQLDialect implements JQuickSQLDialect {
     protected void appendForeignKeys(StringBuilder sql, JQuickTableDefinition table) {
         List<JQuickForeignKeyConstraint> foreignKeys = table.getForeignKeys();
         for (int i = 0; i < foreignKeys.size(); i++) {
-            sql.append(INDENT).append(buildForeignKey(foreignKeys.get(i)));
+            sql.append(INDENT).append(buildForeignKey(table,foreignKeys.get(i)));
             if (i < foreignKeys.size() - 1) {
                 sql.append(COMMA);
             }
@@ -155,17 +156,17 @@ public abstract class JQuickAbsSQLDialect implements JQuickSQLDialect {
     }
 
     @Override
-    public String buildColumnDefinition(JQuickColumnDefinition column) {
+    public String buildColumnDefinition(JQuickTableDefinition tableDefinition,JQuickColumnDefinition column) {
         StringBuilder def = new StringBuilder();
-        def.append(quoteIdentifier(column.getColumnName())).append(SPACE);
-        def.append(getDataTypeString(column.getDataType()));
+        def.append(quoteIdentifier(tableDefinition,column.getColumnName())).append(SPACE);
+        def.append(getDataTypeString(tableDefinition,column.getDataType()));
         appendNullClause(def, column);
         if (column.isAutoIncrement()) {
-            def.append(SPACE).append(getAutoIncrementKeyword());
+            def.append(SPACE).append(getAutoIncrementKeyword(tableDefinition));
         }
         appendDefaultClause(def, column);
         appendColumnComment(def, column);
-        appendColumnPosition(def, column);
+        appendColumnPosition(tableDefinition,def, column);
         return def.toString();
     }
 
@@ -201,44 +202,44 @@ public abstract class JQuickAbsSQLDialect implements JQuickSQLDialect {
     /**
      * 追加列位置（FIRST / AFTER）
      */
-    protected void appendColumnPosition(StringBuilder def, JQuickColumnDefinition column) {
+    protected void appendColumnPosition(JQuickTableDefinition tableDefinition,StringBuilder def, JQuickColumnDefinition column) {
         if (column.getPosition() != null) {
             JQuickColumnPosition position = column.getPosition();
             if (position.getType() == JQuickPositionType.FIRST) {
                 def.append(" FIRST");
             } else if (position.getType() == JQuickPositionType.AFTER && position.getAfterColumn() != null) {
-                def.append(" AFTER ").append(quoteIdentifier(position.getAfterColumn()));
+                def.append(" AFTER ").append(quoteIdentifier(tableDefinition,position.getAfterColumn()));
             }
         }
     }
     @Override
-    public String buildPrimaryKey(JQuickPrimaryKeyConstraint pk) {
+    public String buildPrimaryKey(JQuickTableDefinition tableDefinition,JQuickPrimaryKeyConstraint pk) {
         StringBuilder sb = new StringBuilder();
-        appendConstraintName(sb, pk.getConstraintName());
+        appendConstraintName(tableDefinition,sb, pk.getConstraintName());
         sb.append("PRIMARY KEY (");
-        sb.append(formatColumnList(pk.getColumns()));
+        sb.append(formatColumnList(tableDefinition,pk.getColumns()));
         sb.append(")");
         return sb.toString();
     }
 
     @Override
-    public String buildUniqueConstraint(JQuickUniqueConstraint uc) {
+    public String buildUniqueConstraint(JQuickTableDefinition tableDefinition,JQuickUniqueConstraint uc) {
         StringBuilder sb = new StringBuilder();
-        appendConstraintName(sb, uc.getConstraintName());
+        appendConstraintName(tableDefinition,sb, uc.getConstraintName());
         sb.append("UNIQUE (");
-        sb.append(formatColumnList(uc.getColumns()));
+        sb.append(formatColumnList(tableDefinition,uc.getColumns()));
         sb.append(")");
         return sb.toString();
     }
 
     @Override
-    public String buildForeignKey(JQuickForeignKeyConstraint fk) {
+    public String buildForeignKey(JQuickTableDefinition tableDefinition,JQuickForeignKeyConstraint fk) {
         StringBuilder sb = new StringBuilder();
-        appendConstraintName(sb, fk.getConstraintName());
+        appendConstraintName(tableDefinition,sb, fk.getConstraintName());
         sb.append("FOREIGN KEY (");
-        sb.append(formatColumnList(fk.getColumns()));
-        sb.append(") REFERENCES ").append(quoteIdentifier(fk.getReferencedTable())).append(" (");
-        sb.append(formatColumnList(fk.getReferencedColumns()));
+        sb.append(formatColumnList(tableDefinition,fk.getColumns()));
+        sb.append(") REFERENCES ").append(quoteIdentifier(tableDefinition,fk.getReferencedTable())).append(" (");
+        sb.append(formatColumnList(tableDefinition,fk.getReferencedColumns()));
         sb.append(")");
         if (fk.getOnDelete() != null) {
             sb.append(" ON DELETE ").append(convertForeignKeyAction(fk.getOnDelete()));
@@ -250,7 +251,7 @@ public abstract class JQuickAbsSQLDialect implements JQuickSQLDialect {
     }
 
     @Override
-    public String buildComment(JQuickColumnDefinition column) {
+    public String buildComment(JQuickTableDefinition tableDefinition,JQuickColumnDefinition column) {
         if (column.getComment() != null && !column.getComment().isEmpty()) {
             return "COMMENT '" + escapeString(column.getComment()) + "'";
         }
@@ -260,24 +261,24 @@ public abstract class JQuickAbsSQLDialect implements JQuickSQLDialect {
     /**
      * 追加约束名称
      */
-    protected void appendConstraintName(StringBuilder sb, String constraintName) {
+    protected void appendConstraintName(JQuickTableDefinition tableDefinition,StringBuilder sb, String constraintName) {
         if (constraintName != null && !constraintName.isEmpty()) {
-            sb.append("CONSTRAINT ").append(quoteIdentifier(constraintName)).append(SPACE);
+            sb.append("CONSTRAINT ").append(quoteIdentifier(tableDefinition,constraintName)).append(SPACE);
         }
     }
 
     /**
      * 格式化列列表（用逗号分隔并添加引号）
      */
-    protected String formatColumnList(List<String> columns) {
+    protected String formatColumnList(JQuickTableDefinition tableDefinition,List<String> columns) {
         if (columns == null || columns.isEmpty()) {
             return "";
         }
-        return columns.stream().map(this::quoteIdentifier).collect(Collectors.joining(", "));
+        return columns.stream().map(e->quoteIdentifier(tableDefinition,e)).collect(Collectors.joining(", "));
     }
 
     @Override
-    public String getDataTypeString(JQuickDataType dataType) {
+    public String getDataTypeString(JQuickTableDefinition tableDefinition,JQuickDataType dataType) {
         if (dataType.getCustomTypeName() != null && !dataType.getCustomTypeName().isEmpty()) {
             return dataType.getCustomTypeName();
         }
@@ -301,14 +302,19 @@ public abstract class JQuickAbsSQLDialect implements JQuickSQLDialect {
      * 标识符引用（MySQL使用反引号，PostgreSQL使用双引号等）
      * 子类可覆盖此方法以使用不同的引用符号
      */
-    protected String quoteIdentifier(String identifier) {
-        if (identifier == null || identifier.isEmpty()) {
+    protected String quoteIdentifier(JQuickTableDefinition tableDefinition,String identifier) {
+        if (identifier == null || identifier.isEmpty()||null==tableDefinition) {
             return identifier;
         }
         if (identifier.startsWith(this.getQuoteKeyWord()) && identifier.endsWith(this.getQuoteKeyWord())) {
             return identifier;
         }
-        return  this.getQuoteKeyWord() + identifier + this.getQuoteKeyWord();
+        if(tableDefinition.isQuoteEnabled()){
+            return  this.getQuoteKeyWord() + identifier + this.getQuoteKeyWord();
+        }else{
+            return  identifier;
+        }
+
     }
 
     /**
@@ -441,41 +447,41 @@ public abstract class JQuickAbsSQLDialect implements JQuickSQLDialect {
     /**
      * 构建 ALTER TABLE ADD COLUMN 语句
      */
-    public String buildAddColumn(String tableName, JQuickColumnDefinition column) {
-        return "ALTER TABLE " + quoteIdentifier(tableName) + " ADD " + buildColumnDefinition(column);
+    public String buildAddColumn(JQuickTableDefinition tableDefinition,String tableName, JQuickColumnDefinition column) {
+        return "ALTER TABLE " + quoteIdentifier(tableDefinition,tableName) + " ADD " + buildColumnDefinition(tableDefinition,column);
     }
 
     /**
      * 构建 ALTER TABLE DROP COLUMN 语句
      */
-    public String buildDropColumn(String tableName, String columnName) {
-        return "ALTER TABLE " + quoteIdentifier(tableName) + " DROP COLUMN " + quoteIdentifier(columnName);
+    public String buildDropColumn(JQuickTableDefinition tableDefinition,String tableName, String columnName) {
+        return "ALTER TABLE " + quoteIdentifier(tableDefinition,tableName) + " DROP COLUMN " + quoteIdentifier(tableDefinition,columnName);
     }
 
     /**
      * 构建 DROP TABLE 语句
      */
-    public String buildDropTable(String tableName, boolean ifExists) {
+    public String buildDropTable(JQuickTableDefinition tableDefinition,String tableName, boolean ifExists) {
         StringBuilder sb = new StringBuilder("DROP TABLE ");
         if (ifExists) {
             sb.append("IF EXISTS ");
         }
-        sb.append(quoteIdentifier(tableName));
+        sb.append(quoteIdentifier(tableDefinition,tableName));
         return sb.toString();
     }
 
     /**
      * 构建 TRUNCATE TABLE 语句
      */
-    public String buildTruncateTable(String tableName) {
-        return "TRUNCATE TABLE " + quoteIdentifier(tableName);
+    public String buildTruncateTable(JQuickTableDefinition tableDefinition,String tableName) {
+        return "TRUNCATE TABLE " + quoteIdentifier(tableDefinition,tableName);
     }
 
     /**
      * 构建 RENAME TABLE 语句
      */
-    public String buildRenameTable(String oldName, String newName) {
-        return "RENAME TABLE " + quoteIdentifier(oldName) + " TO " + quoteIdentifier(newName);
+    public String buildRenameTable(JQuickTableDefinition tableDefinition,String oldName, String newName) {
+        return "RENAME TABLE " + quoteIdentifier(tableDefinition,oldName) + " TO " + quoteIdentifier(tableDefinition,newName);
     }
 
     public String formatValue(Object value) {

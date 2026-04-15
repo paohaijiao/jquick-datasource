@@ -15,38 +15,38 @@ public interface JQuickSQLDialect {
 
     String buildCreateTable(JQuickTableDefinition table);
 
-    String buildColumnDefinition(JQuickColumnDefinition column);
+    String buildColumnDefinition(JQuickTableDefinition tableDefinition,JQuickColumnDefinition column);
 
-    String buildPrimaryKey(JQuickPrimaryKeyConstraint pk);
+    String buildPrimaryKey(JQuickTableDefinition tableDefinition,JQuickPrimaryKeyConstraint pk);
 
-    String buildUniqueConstraint(JQuickUniqueConstraint uc);
+    String buildUniqueConstraint(JQuickTableDefinition tableDefinition,JQuickUniqueConstraint uc);
 
-    String buildIndex(JQuickIndexDefinition index);
+    String buildIndex(JQuickTableDefinition tableDefinition,JQuickIndexDefinition index);
 
-    String buildForeignKey(JQuickForeignKeyConstraint fk);
+    String buildForeignKey(JQuickTableDefinition tableDefinition,JQuickForeignKeyConstraint fk);
 
-    String buildComment(JQuickColumnDefinition column);
+    String buildComment(JQuickTableDefinition tableDefinition,JQuickColumnDefinition column);
 
-    String getAutoIncrementKeyword();
+    String getAutoIncrementKeyword(JQuickTableDefinition tableDefinition);
 
-    String getDataTypeString(JQuickDataType dataType);
-
-
-    String buildModifyColumn(String tableName, JQuickColumnDefinition column);
-
-    String buildChangeColumn(String tableName, String oldName,JQuickColumnDefinition column);
-
-    String buildShowCreateTable(String tableName);
+    String getDataTypeString(JQuickTableDefinition tableDefinition,JQuickDataType dataType);
 
 
-    String buildDescribeTable(String tableName);
+    String buildModifyColumn(JQuickTableDefinition tableDefinition,String tableName, JQuickColumnDefinition column);
 
-    String buildInsert(JQuickRow row, JQuickTableDefinition table);
+    String buildChangeColumn(JQuickTableDefinition tableDefinition,String tableName, String oldName,JQuickColumnDefinition column);
 
-    String buildUpdate(JQuickRow row, JQuickTableDefinition table, String whereClause);
+    String buildShowCreateTable(JQuickTableDefinition tableDefinition,String tableName);
 
-    String buildDelete(JQuickTableDefinition table, String whereClause);
 
-    String buildSelect(JQuickTableDefinition table, List<String> columns, String whereClause);
+    String buildDescribeTable(JQuickTableDefinition tableDefinition,String tableName);
+
+    String buildInsert(JQuickTableDefinition tableDefinition,JQuickRow row);
+
+    String buildUpdate(JQuickTableDefinition tableDefinition,JQuickRow row, String whereClause);
+
+    String buildDelete(JQuickTableDefinition tableDefinition, String whereClause);
+
+    String buildSelect(JQuickTableDefinition tableDefinition,List<String> columns, String whereClause);
 
 }
