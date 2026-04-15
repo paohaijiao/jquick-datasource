@@ -41,7 +41,12 @@ public class JQuickIndexDefinition {
     private String type; // BTREE, HASH, FULLTEXT
 
     private String comment;
+
     private String whereCondition;
+
+    private String fileGroup;//dm
+
+    private boolean local;//dm
 
     private Map<String, Object> extensions = new HashMap<>();
     /**
