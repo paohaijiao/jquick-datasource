@@ -47,6 +47,8 @@ public class JQuickColumnDefinition {
 
     private String comment;
 
+    private boolean primaryKey;
+
     private JQuickColumnPosition position; // FIRST, AFTER columnName
 
     private Map<String, Object> extensions;
