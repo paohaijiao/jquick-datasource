@@ -17,6 +17,7 @@ package com.github.paohaijiao.extra;
 
 import lombok.Data;
 
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -32,4 +33,5 @@ public class JQuickUniqueConstraint {
     private String constraintName;
 
     private List<String> columns;
+    private HashMap<String,Object> extensions=new HashMap<>()   ;
 }

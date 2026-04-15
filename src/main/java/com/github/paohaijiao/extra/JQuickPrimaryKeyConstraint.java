@@ -17,6 +17,7 @@ package com.github.paohaijiao.extra;
 
 import lombok.Data;
 
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -34,4 +35,6 @@ public class JQuickPrimaryKeyConstraint {
     private List<String> columns;
 
     private boolean autoIncrement;
+
+    private HashMap<String,Object> extensions=new HashMap<>()   ;
 }
