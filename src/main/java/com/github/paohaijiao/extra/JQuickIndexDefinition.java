@@ -41,6 +41,7 @@ public class JQuickIndexDefinition {
     private String type; // BTREE, HASH, FULLTEXT
 
     private String comment;
+    private String whereCondition;
 
     private Map<String, Object> extensions = new HashMap<>();
     /**
