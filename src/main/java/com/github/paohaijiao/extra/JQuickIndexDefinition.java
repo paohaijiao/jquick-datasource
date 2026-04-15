@@ -18,7 +18,9 @@ package com.github.paohaijiao.extra;
 import com.github.paohaijiao.enums.JQuickIndexType;
 import lombok.Data;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * packageName com.github.paohaijiao.extra
@@ -39,5 +41,35 @@ public class JQuickIndexDefinition {
     private String type; // BTREE, HASH, FULLTEXT
 
     private String comment;
+
+    private Map<String, Object> extensions = new HashMap<>();
+    /**
+     * 添加扩展属性
+     */
+    public JQuickIndexDefinition addExtension(String key, Object value) {
+        if (extensions == null) {
+            extensions = new HashMap<>();
+        }
+        extensions.put(key, value);
+        return this;
+    }
+
+    /**
+     * 获取扩展属性
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T getExtension(String key) {
+        if (extensions == null) {
+            return null;
+        }
+        return (T) extensions.get(key);
+    }
+
+    /**
+     * 检查是否有扩展属性
+     */
+    public boolean hasExtension(String key) {
+        return extensions != null && extensions.containsKey(key);
+    }
 
 }
