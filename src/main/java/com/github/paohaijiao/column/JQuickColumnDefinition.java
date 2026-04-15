@@ -49,6 +49,11 @@ public class JQuickColumnDefinition {
 
     private boolean primaryKey;
 
+    private boolean materialized;//clickhouse
+    private boolean alias;//clickhouse
+    private String materializedExpression;//clickhouse
+    private String aliasExpression;//clickhouse
+
     private JQuickColumnPosition position; // FIRST, AFTER columnName
 
     private Map<String, Object> extensions;
