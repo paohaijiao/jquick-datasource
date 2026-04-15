@@ -34,13 +34,19 @@ public interface JQuickSQLDialect {
 
     String buildModifyColumn(String tableName, JQuickColumnDefinition column);
 
-    String buildChangeColumn(String tableName, JQuickColumnDefinition column);
+    String buildChangeColumn(String tableName, String oldName,JQuickColumnDefinition column);
 
-    String buildShowCreateTable(String tableName, JQuickColumnDefinition column);
+    String buildShowCreateTable(String tableName);
 
 
-    String buildDescribeTable(String tableName, JQuickColumnDefinition column);
+    String buildDescribeTable(String tableName);
 
-    String buildDml(JQuickRow tableName, JQuickColumnDefinition column);
+    String buildInsert(JQuickRow row, JQuickTableDefinition table);
+
+    String buildUpdate(JQuickRow row, JQuickTableDefinition table, String whereClause);
+
+    String buildDelete(JQuickTableDefinition table, String whereClause);
+
+    String buildSelect(JQuickTableDefinition table, List<String> columns, String whereClause);
 
 }

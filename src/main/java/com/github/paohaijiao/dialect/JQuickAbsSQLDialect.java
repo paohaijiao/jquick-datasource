@@ -27,6 +27,7 @@ import com.github.paohaijiao.extra.JQuickPrimaryKeyConstraint;
 import com.github.paohaijiao.extra.JQuickUniqueConstraint;
 import com.github.paohaijiao.table.JQuickTableDefinition;
 
+import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -39,7 +40,7 @@ import java.util.stream.Collectors;
  * @since 2026/4/13
  */
 public abstract class JQuickAbsSQLDialect implements JQuickSQLDialect {
-
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     protected static final String NEW_LINE = "\n";
 
@@ -475,5 +476,22 @@ public abstract class JQuickAbsSQLDialect implements JQuickSQLDialect {
      */
     public String buildRenameTable(String oldName, String newName) {
         return "RENAME TABLE " + quoteIdentifier(oldName) + " TO " + quoteIdentifier(newName);
+    }
+
+    public String formatValue(Object value) {
+        if (value == null) {
+            return "NULL";
+        }
+        if (value instanceof String) {
+            return "'" + escapeString((String) value) + "'";
+        }
+        if (value instanceof Number || value instanceof Boolean) {
+            return value.toString();
+        }
+        if (value instanceof java.util.Date) {
+            String date=sdf.format(value);
+            return "'" + date + "'";
+        }
+        return "'" + escapeString(value.toString()) + "'";
     }
 }
