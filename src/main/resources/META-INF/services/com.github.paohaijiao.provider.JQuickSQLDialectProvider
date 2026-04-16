@@ -33,3 +33,4 @@ com.github.paohaijiao.provider.impl.JQuickTDengineDialectProvider
 com.github.paohaijiao.provider.impl.JQuickTiDBDialectProvider
 com.github.paohaijiao.provider.impl.JQuickVerticaDialectProvider
 com.github.paohaijiao.provider.impl.JQuickYugabyteDBDialectProvider
+com.github.paohaijiao.provider.impl.JQuickPhoenixDialectProvider
