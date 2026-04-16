@@ -16,8 +16,7 @@
 package com.github.paohaijiao.provider.impl;
 
 import com.github.paohaijiao.dialect.JQuickSQLDialect;
-import com.github.paohaijiao.impl.JQuickKingbaseESDialect;
-import com.github.paohaijiao.impl.JQuickMySQLDialect;
+import com.github.paohaijiao.dialect.impl.JQuickMySQLDialect;
 import com.github.paohaijiao.provider.JQuickSQLDialectProvider;
 
 /**

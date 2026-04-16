@@ -18,12 +18,9 @@ package com.github.paohaijiao;
 import com.github.paohaijiao.column.JQuickColumnDefinition;
 import com.github.paohaijiao.dataType.JQuickDataType;
 import com.github.paohaijiao.dataType.enums.JQuickDataTypeFamily;
-import com.github.paohaijiao.dialect.JQuickSQLDialect;
-import com.github.paohaijiao.extra.JQuickIndexDefinition;
 import com.github.paohaijiao.extra.JQuickPrimaryKeyConstraint;
 import com.github.paohaijiao.extra.JQuickUniqueConstraint;
-import com.github.paohaijiao.impl.JQuickKingbaseESDialect;
-import com.github.paohaijiao.manager.JQuickDatabaseTypeManager;
+import com.github.paohaijiao.dialect.impl.JQuickKingbaseESDialect;
 import com.github.paohaijiao.row.JQuickRow;
 import com.github.paohaijiao.table.JQuickTableDefinition;
 import org.junit.Test;
@@ -31,7 +28,6 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Map;
 
 /**
  * packageName com.github.paohaijiao
