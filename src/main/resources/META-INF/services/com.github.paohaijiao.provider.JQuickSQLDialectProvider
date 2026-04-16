@@ -31,3 +31,4 @@ com.github.paohaijiao.provider.impl.JQuickSQLServerDialectProvider
 com.github.paohaijiao.provider.impl.JQuickSybaseDialectProvider
 com.github.paohaijiao.provider.impl.JQuickTDengineDialectProvider
 com.github.paohaijiao.provider.impl.JQuickTiDBDialectProvider
+com.github.paohaijiao.provider.impl.JQuickVerticaDialectProvider
