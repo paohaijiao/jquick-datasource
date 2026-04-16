@@ -25,3 +25,4 @@ com.github.paohaijiao.provider.impl.JQuickPolarDBDialectProvider
 com.github.paohaijiao.provider.impl.JQuickPrestoDialectProvider
 com.github.paohaijiao.provider.impl.JQuickRedshiftDialectProvider
 com.github.paohaijiao.provider.impl.JQuickSnowflakeDialectProvider
+com.github.paohaijiao.provider.impl.JQuickSparkSQLDialectProvider
