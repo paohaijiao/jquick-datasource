@@ -4,6 +4,7 @@ com.github.paohaijiao.provider.impl.JQuickBigQueryDialectProvider
 com.github.paohaijiao.provider.impl.JQuickClickHouseDialectProvider
 com.github.paohaijiao.provider.impl.JQuickCockroachDBDialectProvider
 com.github.paohaijiao.provider.impl.JQuickDamengDialectProvider
+com.github.paohaijiao.provider.impl.JQuickDB2DialectProvider
 com.github.paohaijiao.provider.impl.JQuickKingbaseEsDialectProvider
 com.github.paohaijiao.provider.impl.JQuickMysqlDialectProvider
 com.github.paohaijiao.provider.impl.JQuickMariaDbDialectProvider
