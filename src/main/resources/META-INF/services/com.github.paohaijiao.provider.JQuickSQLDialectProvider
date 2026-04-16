@@ -9,6 +9,7 @@ com.github.paohaijiao.provider.impl.JQuickDerbyDialectProvider
 com.github.paohaijiao.provider.impl.JQuickDorisDialectProvider
 com.github.paohaijiao.provider.impl.JQuickDrillDialectProvider
 com.github.paohaijiao.provider.impl.JQuickFirebirdDialectProvider
+com.github.paohaijiao.provider.impl.JQuickGaussDBDialectProvider
 com.github.paohaijiao.provider.impl.JQuickKingbaseEsDialectProvider
 com.github.paohaijiao.provider.impl.JQuickMysqlDialectProvider
 com.github.paohaijiao.provider.impl.JQuickMariaDbDialectProvider
