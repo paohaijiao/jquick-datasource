@@ -22,3 +22,4 @@ com.github.paohaijiao.provider.impl.JQuickMysqlDialectProvider
 com.github.paohaijiao.provider.impl.JQuickOceanBaseDialectProvider
 com.github.paohaijiao.provider.impl.JQuickOracleDialectProvider
 com.github.paohaijiao.provider.impl.JQuickPolarDBDialectProvider
+com.github.paohaijiao.provider.impl.JQuickPrestoDialectProvider
