@@ -1,6 +1,7 @@
 # META-INF/services/com.github.paohaijiao.provider.JQuickSQLDialectProvider
 com.github.paohaijiao.provider.impl.JQuickAccessDialectProvider
 com.github.paohaijiao.provider.impl.JQuickBigQueryDialectProvider
+com.github.paohaijiao.provider.impl.JQuickClickHouseDialectProvider
 com.github.paohaijiao.provider.impl.JQuickKingbaseEsDialectProvider
 com.github.paohaijiao.provider.impl.JQuickMysqlDialectProvider
 com.github.paohaijiao.provider.impl.JQuickMariaDbDialectProvider
