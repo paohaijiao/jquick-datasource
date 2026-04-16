@@ -57,10 +57,12 @@ import java.util.stream.Collectors;
  */
 public class JQuickOceanBaseDialect extends JQuickAbsSQLDialect {
 
-    // 兼容模式
     public static final String MODE_MYSQL = "MYSQL";
+
     public static final String MODE_ORACLE = "ORACLE";
+
     protected static final String OB_QUOTE = "`";
+
     private final String mode;
 
     /**

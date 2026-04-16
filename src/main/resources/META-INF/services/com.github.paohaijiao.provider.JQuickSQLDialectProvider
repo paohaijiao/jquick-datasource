@@ -17,5 +17,6 @@ com.github.paohaijiao.provider.impl.JQuickImpalaDialectProvider
 com.github.paohaijiao.provider.impl.JQuickInfluxDBDialectProvider
 com.github.paohaijiao.provider.impl.JQuickInformixDialectProvider
 com.github.paohaijiao.provider.impl.JQuickKingbaseEsDialectProvider
-com.github.paohaijiao.provider.impl.JQuickMysqlDialectProvider
 com.github.paohaijiao.provider.impl.JQuickMariaDbDialectProvider
+com.github.paohaijiao.provider.impl.JQuickMysqlDialectProvider
+com.github.paohaijiao.provider.impl.JQuickOceanBaseDialectProvider
