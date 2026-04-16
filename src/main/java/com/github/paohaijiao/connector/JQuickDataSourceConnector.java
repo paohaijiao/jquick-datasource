@@ -20,6 +20,7 @@ public class JQuickDataSourceConnector {
     private String password;
 
     private String schema;
+
     private HashMap<String,Object> extract=new HashMap<>();
 
 
