@@ -17,6 +17,7 @@ package com.github.paohaijiao.impl;
  */
 
 import com.github.paohaijiao.column.JQuickColumnDefinition;
+import com.github.paohaijiao.connector.JQuickDataSourceConnector;
 import com.github.paohaijiao.dataType.JQuickDataType;
 import com.github.paohaijiao.dataType.JQuickDataTypeConverter;
 import com.github.paohaijiao.dataType.impl.JQuickDerbyDataTypeConverter;
@@ -96,6 +97,65 @@ public class JQuickDerbyDialect extends JQuickAbsSQLDialect {
                 }
             }
         }
+    }
+
+    @Override
+    public String getDriverClass(JQuickDataSourceConnector connector) {
+        if (connector != null && connector.getDriverClass() != null && !connector.getDriverClass().trim().isEmpty()) {
+            return connector.getDriverClass();
+        }
+        return "org.apache.derby.jdbc.EmbeddedDriver";
+    }
+
+    @Override
+    public String getUrl(JQuickDataSourceConnector connector) {
+        if (connector == null) {
+            throw new IllegalArgumentException("Connector cannot be null");
+        }
+        if (connector.getUrl() != null && !connector.getUrl().trim().isEmpty()) {
+            return connector.getUrl();
+        }
+        String driverClass = connector.getDriverClass();
+        boolean isNetworkDriver = driverClass != null && (driverClass.contains("Network") || driverClass.contains("Client"));
+        String host = connector.getHost();
+        String port = connector.getPort();
+        String database = connector.getSchema();
+        String username = connector.getUsername();
+        String password = connector.getPassword();
+        StringBuilder url = new StringBuilder();
+        if (isNetworkDriver) {
+            if (host == null || host.trim().isEmpty()) {
+                throw new IllegalStateException("Host is required for Derby Network Server connection");
+            }
+            String effectivePort = (port != null && !port.trim().isEmpty()) ? port : "1527";
+            url.append("jdbc:derby://").append(host).append(":").append(effectivePort);
+            if (database != null && !database.trim().isEmpty()) {
+                url.append("/").append(database);
+            } else {
+                url.append("/");
+            }
+        } else {
+            url.append("jdbc:derby:");
+            if (database != null && !database.trim().isEmpty()) {
+                url.append(database);
+            } else {
+                url.append("memory:myDB");
+            }
+        }
+        boolean hasParams = false;
+        if (username != null && !username.trim().isEmpty()) {
+            url.append(";user=").append(username);
+            hasParams = true;
+        }
+        if (password != null && !password.trim().isEmpty()) {
+            url.append(";password=").append(password);
+            hasParams = true;
+        }
+        if (!isNetworkDriver) {
+            url.append(";create=true");
+            hasParams = true;
+        }
+        return url.toString();
     }
 
     @Override

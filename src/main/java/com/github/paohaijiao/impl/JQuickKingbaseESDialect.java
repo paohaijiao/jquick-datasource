@@ -16,6 +16,7 @@
 package com.github.paohaijiao.impl;
 
 import com.github.paohaijiao.column.JQuickColumnDefinition;
+import com.github.paohaijiao.connector.JQuickDataSourceConnector;
 import com.github.paohaijiao.dataType.JQuickDataType;
 import com.github.paohaijiao.dataType.JQuickDataTypeConverter;
 import com.github.paohaijiao.dataType.impl.JQuickKingbaseESDataTypeConverter;
@@ -183,6 +184,63 @@ public class JQuickKingbaseESDialect extends JQuickAbsSQLDialect {
                 sql.append(" TABLESPACE ").append(quoteIdentifier(table,tablespace));
             }
         }
+    }
+
+    @Override
+    public String getDriverClass(JQuickDataSourceConnector connector) {
+        if (connector != null && connector.getDriverClass() != null
+                && !connector.getDriverClass().trim().isEmpty()) {
+            return connector.getDriverClass();
+        }
+        return "com.kingbase8.Driver";
+    }
+
+    @Override
+    public String getUrl(JQuickDataSourceConnector connector) {
+        if (connector == null) {
+            throw new IllegalArgumentException("Connector cannot be null");
+        }
+        if (connector.getUrl() != null && !connector.getUrl().trim().isEmpty()) {
+            return connector.getUrl();
+        }
+        String host = connector.getHost();
+        String port = connector.getPort();
+        String database = connector.getSchema();
+        String username = connector.getUsername();
+        String password = connector.getPassword();
+        if (host == null || host.trim().isEmpty()) {
+            throw new IllegalStateException("Host is required for KingbaseES connection");
+        }
+        String effectivePort = (port != null && !port.trim().isEmpty()) ? port : "54321";
+        String effectiveDatabase = (database != null && !database.trim().isEmpty()) ? database : "test";
+        StringBuilder url = new StringBuilder();
+        url.append("jdbc:kingbase8://").append(host).append(":").append(effectivePort);
+        url.append("/").append(effectiveDatabase);
+        boolean hasParams = false;
+        if (username != null && !username.trim().isEmpty()) {
+            url.append("?user=").append(username);
+            hasParams = true;
+        }
+        if (password != null && !password.trim().isEmpty()) {
+            url.append(hasParams ? "&" : "?").append("password=").append(password);
+            hasParams = true;
+        }
+        boolean useSsl = "true".equalsIgnoreCase(connector.getByKeyStr("ssl"));
+        if (useSsl) {
+            url.append(hasParams ? "&" : "?").append("ssl=true");
+            hasParams = true;
+            String sslMode = connector.getByKeyStr("sslMode");
+            if (sslMode != null && !sslMode.isEmpty()) {
+                url.append("&sslmode=").append(sslMode);
+            }
+        }
+        String currentSchema = connector.getByKeyStr("currentSchema");
+        if (currentSchema != null && !currentSchema.isEmpty()) {
+            url.append(hasParams ? "&" : "?").append("currentSchema=").append(currentSchema);
+            hasParams = true;
+        }
+
+        return url.toString();
     }
 
     @Override

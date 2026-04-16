@@ -17,6 +17,7 @@ package com.github.paohaijiao.impl;
  */
 
 import com.github.paohaijiao.column.JQuickColumnDefinition;
+import com.github.paohaijiao.connector.JQuickDataSourceConnector;
 import com.github.paohaijiao.dataType.JQuickDataType;
 import com.github.paohaijiao.dataType.JQuickDataTypeConverter;
 import com.github.paohaijiao.dataType.impl.JQuickH2DataTypeConverter;
@@ -92,6 +93,74 @@ public class JQuickH2Dialect extends JQuickAbsSQLDialect {
                 }
             }
         }
+    }
+
+    @Override
+    public String getDriverClass(JQuickDataSourceConnector connector) {
+        if (connector != null && connector.getDriverClass() != null && !connector.getDriverClass().trim().isEmpty()) {
+            return connector.getDriverClass();
+        }
+        return "org.h2.Driver";
+    }
+
+    @Override
+    public String getUrl(JQuickDataSourceConnector connector) {
+        if (connector == null) {
+            throw new IllegalArgumentException("Connector cannot be null");
+        }
+        if (connector.getUrl() != null && !connector.getUrl().trim().isEmpty()) {
+            return connector.getUrl();
+        }
+        String host = connector.getHost();
+        String port = connector.getPort();
+        String database = connector.getSchema();      // 数据库名/路径
+        String username = connector.getUsername();
+        String password = connector.getPassword();
+        StringBuilder url = new StringBuilder();
+        if (host != null && !host.trim().isEmpty()) {
+            String effectivePort = (port != null && !port.trim().isEmpty()) ? port : "9092";
+            url.append("jdbc:h2:tcp://").append(host).append(":").append(effectivePort);
+            if (database != null && !database.trim().isEmpty()) {
+                url.append("/").append(database);
+            } else {
+                url.append("/test");
+            }
+
+        } else {
+            url.append("jdbc:h2:");
+            if (database != null && !database.trim().isEmpty()) {
+                if (database.startsWith("mem:") || database.equals("mem")) {
+                    url.append(database);
+                } else {
+                    String dbPath = database.trim();
+                    if (dbPath.contains("\\")) {
+                        dbPath = dbPath.replace("\\", "/");
+                    }
+                    url.append(dbPath);
+                }
+            } else {
+                url.append("mem:default");
+            }
+        }
+        boolean hasParams = false;
+        if (username != null && !username.trim().isEmpty()) {
+            url.append(";USER=").append(username);
+            hasParams = true;
+        }
+        if (password != null && !password.trim().isEmpty()) {
+            url.append(";PASSWORD=").append(password);
+            hasParams = true;
+        }
+        if (host == null || host.trim().isEmpty()) {
+            if (!hasParams) {
+                url.append(";DB_CLOSE_DELAY=-1");  // 保持数据库打开
+                url.append(";MODE=MySQL");          // 兼容模式（可选）
+            } else {
+                url.append(";DB_CLOSE_DELAY=-1");
+            }
+        }
+
+        return url.toString();
     }
 
     @Override

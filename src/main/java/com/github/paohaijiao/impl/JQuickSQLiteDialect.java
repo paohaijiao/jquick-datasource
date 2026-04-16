@@ -15,6 +15,7 @@ package com.github.paohaijiao.impl;
  * Copyright (c) [2025-2099] Martin (goudingcheng@gmail.com)
  */
 import com.github.paohaijiao.column.JQuickColumnDefinition;
+import com.github.paohaijiao.connector.JQuickDataSourceConnector;
 import com.github.paohaijiao.dataType.JQuickDataType;
 import com.github.paohaijiao.dataType.JQuickDataTypeConverter;
 import com.github.paohaijiao.dataType.impl.JQuickSQLiteDataTypeConverter;
@@ -93,6 +94,64 @@ public class JQuickSQLiteDialect extends JQuickAbsSQLDialect {
                 }
             }
         }
+    }
+
+    @Override
+    public String getDriverClass(JQuickDataSourceConnector connector) {
+        if (connector != null && connector.getDriverClass() != null && !connector.getDriverClass().trim().isEmpty()) {
+            return connector.getDriverClass();
+        }
+        return "org.sqlite.JDBC";
+    }
+
+    @Override
+    public String getUrl(JQuickDataSourceConnector connector) {
+        if (connector == null) {
+            throw new IllegalArgumentException("Connector cannot be null");
+        }
+        if (connector.getUrl() != null && !connector.getUrl().trim().isEmpty()) {
+            return connector.getUrl();
+        }
+        String host = connector.getHost();
+        String database = connector.getSchema();
+        String username = connector.getUsername();
+        String password = connector.getPassword();
+        StringBuilder url = new StringBuilder();
+        url.append("jdbc:sqlite:");
+        if (database != null && !database.trim().isEmpty()) {
+            String dbPath = database.trim();
+            if (dbPath.startsWith(":memory:")) {
+                url.append(":memory:");
+            } else if (dbPath.startsWith("::memory:")) {
+                url.append("::memory:");
+            } else if (dbPath.startsWith(":temp:")) {
+                url.append(":temp:");
+            } else if (dbPath.startsWith(":resource:")) {
+                url.append(":resource:");
+            } else {
+                if (dbPath.contains("\\")) {
+                    dbPath = dbPath.replace("\\", "/");
+                }
+                url.append(dbPath);
+            }
+        } else {
+            url.append(":memory:");
+        }
+        boolean hasParams = false;
+        if (password != null && !password.trim().isEmpty()) {
+            url.append("?password=").append(password);
+            hasParams = true;
+        }
+        if (!hasParams) {
+            url.append("?");
+            hasParams = true;
+        } else {
+            url.append("&");
+        }
+        url.append("foreign_keys=on");
+        url.append("&journal_mode=WAL");
+        url.append("&synchronous=NORMAL");
+        return url.toString();
     }
 
     @Override

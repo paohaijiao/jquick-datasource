@@ -16,6 +16,7 @@ package com.github.paohaijiao.impl;
  */
 
 import com.github.paohaijiao.column.JQuickColumnDefinition;
+import com.github.paohaijiao.connector.JQuickDataSourceConnector;
 import com.github.paohaijiao.dataType.JQuickDataType;
 import com.github.paohaijiao.dataType.JQuickDataTypeConverter;
 import com.github.paohaijiao.dataType.impl.JQuickPostgreSQLDataTypeConverter;
@@ -83,6 +84,55 @@ public class JQuickPgESDialect extends JQuickAbsSQLDialect {
                 }
             }
         }
+    }
+
+    @Override
+    public String getDriverClass(JQuickDataSourceConnector connector) {
+        if (connector != null && connector.getDriverClass() != null && !connector.getDriverClass().trim().isEmpty()) {
+            return connector.getDriverClass();
+        }
+        return "org.postgresql.Driver";
+    }
+
+    @Override
+    public String getUrl(JQuickDataSourceConnector connector) {
+        if (connector == null) {
+            throw new IllegalArgumentException("Connector cannot be null");
+        }
+        if (connector.getUrl() != null && !connector.getUrl().trim().isEmpty()) {
+            return connector.getUrl();
+        }
+        String host = connector.getHost();
+        String port = connector.getPort();
+        String database = connector.getSchema();
+        String username = connector.getUsername();
+        String password = connector.getPassword();
+        if (host == null || host.trim().isEmpty()) {
+            throw new IllegalStateException("Host is required for PgES connection");
+        }
+        String effectivePort = (port != null && !port.trim().isEmpty()) ? port : "5432";
+        String effectiveDatabase = (database != null && !database.trim().isEmpty()) ? database : "postgres";
+        StringBuilder url = new StringBuilder();
+        url.append("jdbc:postgresql://").append(host).append(":").append(effectivePort);
+        url.append("/").append(effectiveDatabase);
+        boolean hasParams = false;
+        if (username != null && !username.trim().isEmpty()) {
+            url.append("?user=").append(username);
+            hasParams = true;
+        }
+        if (password != null && !password.trim().isEmpty()) {
+            url.append(hasParams ? "&" : "?").append("password=").append(password);
+            hasParams = true;
+        }
+        if (hasParams) {
+            url.append("&useSSL=false");
+            url.append("&stringtype=unspecified");
+        } else {
+            url.append("?useSSL=false");
+            url.append("&stringtype=unspecified");
+        }
+
+        return url.toString();
     }
 
     @Override

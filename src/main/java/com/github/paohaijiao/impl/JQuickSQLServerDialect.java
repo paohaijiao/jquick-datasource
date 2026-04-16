@@ -17,6 +17,7 @@ package com.github.paohaijiao.impl;
  */
 
 import com.github.paohaijiao.column.JQuickColumnDefinition;
+import com.github.paohaijiao.connector.JQuickDataSourceConnector;
 import com.github.paohaijiao.dataType.JQuickDataType;
 import com.github.paohaijiao.dataType.JQuickDataTypeConverter;
 import com.github.paohaijiao.dataType.impl.JQuickSQLServerDataTypeConverter;
@@ -102,6 +103,50 @@ public class JQuickSQLServerDialect extends JQuickAbsSQLDialect {
                 sql.append(" FILESTREAM_ON ").append(quoteIdentifier(table, fileStream));
             }
         }
+    }
+
+    @Override
+    public String getDriverClass(JQuickDataSourceConnector connector) {
+        if (connector != null && connector.getDriverClass() != null && !connector.getDriverClass().trim().isEmpty()) {
+            return connector.getDriverClass();
+        }
+        return "com.microsoft.sqlserver.jdbc.SQLServerDriver";
+    }
+
+    @Override
+    public String getUrl(JQuickDataSourceConnector connector) {
+        if (connector == null) {
+            throw new IllegalArgumentException("Connector cannot be null");
+        }
+        if (connector.getUrl() != null && !connector.getUrl().trim().isEmpty()) {
+            return connector.getUrl();
+        }
+        String host = connector.getHost();
+        String port = connector.getPort();
+        String database = connector.getSchema();      // 数据库名
+        String username = connector.getUsername();
+        String password = connector.getPassword();
+        if (host == null || host.trim().isEmpty()) {
+            throw new IllegalStateException("Host is required for SQL Server connection");
+        }
+        String effectivePort = (port != null && !port.trim().isEmpty()) ? port : "1433";
+        StringBuilder url = new StringBuilder();
+        url.append("jdbc:sqlserver://").append(host).append(":").append(effectivePort);
+        if (database != null && !database.trim().isEmpty()) {
+            url.append(";databaseName=").append(database);
+        }
+        if (username != null && !username.trim().isEmpty()) {
+            url.append(";user=").append(username);
+        }
+
+        if (password != null && !password.trim().isEmpty()) {
+            url.append(";password=").append(password);
+        }
+        url.append(";encrypt=false");
+        url.append(";trustServerCertificate=true");
+        url.append(";loginTimeout=30");
+        url.append(";socketTimeout=600");
+        return url.toString();
     }
 
     @Override

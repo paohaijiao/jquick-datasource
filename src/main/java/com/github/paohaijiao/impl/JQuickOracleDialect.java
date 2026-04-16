@@ -16,6 +16,7 @@ package com.github.paohaijiao.impl;
  */
 
 import com.github.paohaijiao.column.JQuickColumnDefinition;
+import com.github.paohaijiao.connector.JQuickDataSourceConnector;
 import com.github.paohaijiao.dataType.JQuickDataType;
 import com.github.paohaijiao.dataType.JQuickDataTypeConverter;
 import com.github.paohaijiao.dataType.impl.JQuickOracleDataTypeConverter;
@@ -99,6 +100,53 @@ public class JQuickOracleDialect extends JQuickAbsSQLDialect {
                 }
             }
         }
+    }
+
+    @Override
+    public String getDriverClass(JQuickDataSourceConnector connector) {
+        if (connector != null && connector.getDriverClass() != null && !connector.getDriverClass().trim().isEmpty()) {
+            return connector.getDriverClass();
+        }
+        return "oracle.jdbc.OracleDriver";
+    }
+
+    @Override
+    public String getUrl(JQuickDataSourceConnector connector) {
+        if (connector == null) {
+            throw new IllegalArgumentException("Connector cannot be null");
+        }
+        if (connector.getUrl() != null && !connector.getUrl().trim().isEmpty()) {
+            return connector.getUrl();
+        }
+        String host = connector.getHost();
+        String port = connector.getPort();
+        String database = connector.getSchema();
+        String username = connector.getUsername();
+        String password = connector.getPassword();
+        if (host == null || host.trim().isEmpty()) {
+            throw new IllegalStateException("Host is required for Oracle connection");
+        }
+        String effectivePort = (port != null && !port.trim().isEmpty()) ? port : "1521";
+        String effectiveDatabase = (database != null && !database.trim().isEmpty()) ? database : "XE";
+        String connectionType = connector.getByKeyStr("connectionType");
+        boolean isServiceName = "service".equalsIgnoreCase(connectionType);
+        StringBuilder url = new StringBuilder();
+        url.append("jdbc:oracle:thin:@");
+        if (isServiceName) {
+            url.append("//").append(host).append(":").append(effectivePort);
+            url.append("/").append(effectiveDatabase);
+        } else {
+            url.append(host).append(":").append(effectivePort);
+            url.append(":").append(effectiveDatabase);
+        }
+        if (username != null && !username.trim().isEmpty() && password != null && !password.trim().isEmpty()) {
+            String embeddedUrl = url.toString();
+            url = new StringBuilder();
+            url.append("jdbc:oracle:thin:").append(username).append("/").append(password);
+            url.append("@").append(embeddedUrl.substring(embeddedUrl.indexOf("@") + 1));
+        }
+
+        return url.toString();
     }
 
     @Override

@@ -16,6 +16,7 @@ package com.github.paohaijiao.impl;
  */
 
 import com.github.paohaijiao.column.JQuickColumnDefinition;
+import com.github.paohaijiao.connector.JQuickDataSourceConnector;
 import com.github.paohaijiao.dataType.JQuickDataTypeConverter;
 import com.github.paohaijiao.dataType.impl.JQuickFirebirdDataTypeConverter;
 import com.github.paohaijiao.dialect.JQuickAbsSQLDialect;
@@ -67,6 +68,86 @@ public class JQuickFirebirdDialect extends JQuickAbsSQLDialect {
                 sql.append(" TABLESPACE ").append(table.getExtensions().get("tablespace"));
             }
         }
+    }
+
+    @Override
+    public String getDriverClass(JQuickDataSourceConnector connector) {
+        if (connector != null && connector.getDriverClass() != null && !connector.getDriverClass().trim().isEmpty()) {
+            return connector.getDriverClass();
+        }
+        return "org.firebirdsql.jdbc.FBDriver";
+    }
+
+    @Override
+    public String getUrl(JQuickDataSourceConnector connector) {
+        if (connector == null) {
+            throw new IllegalArgumentException("Connector cannot be null");
+        }
+        if (connector.getUrl() != null && !connector.getUrl().trim().isEmpty()) {
+            return connector.getUrl();
+        }
+        String host = connector.getHost();
+        String port = connector.getPort();
+        String database = connector.getSchema();
+        String username = connector.getUsername();
+        String password = connector.getPassword();
+        if (host == null || host.trim().isEmpty()) {
+            throw new IllegalStateException("Host is required for Firebird connection");
+        }
+        if (database == null || database.trim().isEmpty()) {
+            throw new IllegalStateException("Database path (schema) is required for Firebird connection");
+        }
+        String effectivePort = (port != null && !port.trim().isEmpty()) ? port : "3050";
+        boolean isEmbedded = "embedded".equalsIgnoreCase(connector.getByKeyStr("connectionType"));
+        StringBuilder url = new StringBuilder();
+        if (isEmbedded) {
+            url.append("jdbc:firebirdsql:embedded:");
+            String dbPath = database.trim();
+            if (dbPath.contains("\\")) {
+                dbPath = dbPath.replace("\\", "/");
+            }
+            url.append(dbPath);
+
+        } else {
+            url.append("jdbc:firebirdsql://").append(host).append(":").append(effectivePort);
+            String dbPath = database.trim();
+            if (dbPath.startsWith("/") || dbPath.contains(":")) {
+                url.append("/").append(dbPath);
+            } else if (dbPath.startsWith("./")) {
+                url.append("/").append(dbPath);
+            } else {
+                url.append("/").append(dbPath);
+            }
+        }
+        boolean hasParams = url.toString().contains("?");
+        if (!hasParams && !isEmbedded) {
+            url.append("?");
+            hasParams = true;
+        }
+        if (!hasParams) {
+            url.append("?encoding=UTF-8");
+            hasParams = true;
+        } else if (url.toString().contains("?")) {
+            url.append("&encoding=UTF-8");
+        } else {
+            url.append(";encoding=UTF-8");
+        }
+        if (username != null && !username.trim().isEmpty()) {
+            if (url.toString().contains("?")) {
+                url.append("&user=").append(username);
+            } else {
+                url.append(";user=").append(username);
+            }
+        }
+        if (password != null && !password.trim().isEmpty()) {
+            if (url.toString().contains("?")) {
+                url.append("&password=").append(password);
+            } else {
+                url.append(";password=").append(password);
+            }
+        }
+
+        return url.toString();
     }
 
     @Override

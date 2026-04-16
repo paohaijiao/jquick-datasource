@@ -17,6 +17,7 @@ package com.github.paohaijiao.impl;
  */
 
 import com.github.paohaijiao.column.JQuickColumnDefinition;
+import com.github.paohaijiao.connector.JQuickDataSourceConnector;
 import com.github.paohaijiao.dataType.JQuickDataType;
 import com.github.paohaijiao.dataType.JQuickDataTypeConverter;
 import com.github.paohaijiao.dataType.impl.JQuickInformixDataTypeConverter;
@@ -101,6 +102,69 @@ public class JQuickInformixDialect extends JQuickAbsSQLDialect {
                 }
             }
         }
+    }
+
+    @Override
+    public String getDriverClass(JQuickDataSourceConnector connector) {
+        if (connector != null && connector.getDriverClass() != null && !connector.getDriverClass().trim().isEmpty()) {
+            return connector.getDriverClass();
+        }
+        return "com.informix.jdbc.IfxDriver";
+    }
+
+    @Override
+    public String getUrl(JQuickDataSourceConnector connector) {
+        if (connector == null) {
+            throw new IllegalArgumentException("Connector cannot be null");
+        }
+        if (connector.getUrl() != null && !connector.getUrl().trim().isEmpty()) {
+            return connector.getUrl();
+        }
+        String host = connector.getHost();
+        String port = connector.getPort();
+        String database = connector.getSchema();      // 数据库名
+        String username = connector.getUsername();
+        String password = connector.getPassword();
+        if (host == null || host.trim().isEmpty()) {
+            throw new IllegalStateException("Host is required for Informix connection");
+        }
+        String effectivePort = (port != null && !port.trim().isEmpty()) ? port : "9088";
+        if (database == null || database.trim().isEmpty()) {
+            throw new IllegalStateException("Database name (schema) is required for Informix connection");
+        }
+        StringBuilder url = new StringBuilder();
+        url.append("jdbc:informix-sqli://").append(host).append(":").append(effectivePort);
+        url.append("/").append(database);
+        String serverName = connector.getByKeyStr("informixServer");
+        if (serverName == null || serverName.trim().isEmpty()) {
+            serverName = "informix";
+        }
+        url.append(":INFORMIXSERVER=").append(serverName);
+        boolean hasParams = false;
+        if (username != null && !username.trim().isEmpty()) {
+            url.append(";USER=").append(username);
+            hasParams = true;
+        }
+        if (password != null && !password.trim().isEmpty()) {
+            url.append(";PASSWORD=").append(password);
+            hasParams = true;
+        }
+        String dbLocale = connector.getByKeyStr("dbLocale");
+        if (dbLocale != null && !dbLocale.isEmpty()) {
+            url.append(";DB_LOCALE=").append(dbLocale);
+            hasParams = true;
+        }
+        String clientLocale = connector.getByKeyStr("clientLocale");
+        if (clientLocale != null && !clientLocale.isEmpty()) {
+            url.append(";CLIENT_LOCALE=").append(clientLocale);
+            hasParams = true;
+        }
+        boolean enableLogging = "true".equalsIgnoreCase(connector.getByKeyStr("enableLogging"));
+        if (enableLogging) {
+            url.append(";LOGGING=1");
+            hasParams = true;
+        }
+        return url.toString();
     }
 
     @Override

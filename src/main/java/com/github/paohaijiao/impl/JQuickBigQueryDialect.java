@@ -17,6 +17,7 @@ package com.github.paohaijiao.impl;
  */
 
 import com.github.paohaijiao.column.JQuickColumnDefinition;
+import com.github.paohaijiao.connector.JQuickDataSourceConnector;
 import com.github.paohaijiao.dataType.JQuickDataType;
 import com.github.paohaijiao.dataType.JQuickDataTypeConverter;
 import com.github.paohaijiao.dataType.enums.JQuickDataTypeFamily;
@@ -196,6 +197,58 @@ public class JQuickBigQueryDialect extends JQuickAbsSQLDialect {
             String friendlyName = ext.get("friendlyName").toString();
             sql.append("\nOPTIONS (\n  friendly_name = '").append(escapeString(friendlyName)).append("'\n)");
         }
+    }
+
+    @Override
+    public String getDriverClass(JQuickDataSourceConnector connector) {
+        if(null!=connector){
+            return connector.getDriverClass();
+        }
+        return "com.simba.googlebigquery.jdbc42.Driver";
+    }
+
+    @Override
+    public String getUrl(JQuickDataSourceConnector connector) {
+        if (connector == null) {
+            throw new IllegalArgumentException("Connector cannot be null");
+        }
+        if (connector.getUrl() != null && !connector.getUrl().trim().isEmpty()) {
+            return connector.getUrl();
+        }
+        String projectId = connector.getSchema();
+        String host = connector.getHost();
+        String port = connector.getPort();
+        String username = connector.getUsername();
+        String password = connector.getPassword();
+        if (projectId == null || projectId.trim().isEmpty()) {
+            throw new IllegalStateException("Project ID (schema) is required for BigQuery connection");
+        }
+        StringBuilder url = new StringBuilder();
+        if (host != null && !host.trim().isEmpty()) {
+            url.append("jdbc:bigquery://").append(host);
+            if (port != null && !port.trim().isEmpty()) {
+                url.append(":").append(port);
+            }
+        } else {
+            url.append("jdbc:bigquery://https://www.googleapis.com/bigquery/v2:443");
+        }
+        if (!url.toString().endsWith(";")) {
+            url.append(";");
+        }
+        url.append("ProjectId=").append(projectId).append(";");
+
+        if (username != null && !username.trim().isEmpty() && password != null && !password.trim().isEmpty()) {
+            url.append("OAuthType=0;");
+            url.append("OAuthServiceAcctEmail=").append(username).append(";");
+            url.append("OAuthPvtKeyPath=").append(password).append(";");
+        } else if (username != null && !username.trim().isEmpty()) {
+            url.append("OAuthType=1;");
+        } else {
+            url.append("OAuthType=3;");
+        }
+        url.append("Timeout=3600;");
+        url.append("AllowLargeResults=1;");
+        return url.toString();
     }
 
     @Override

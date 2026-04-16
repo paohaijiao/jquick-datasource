@@ -17,6 +17,7 @@ package com.github.paohaijiao.impl;
  */
 
 import com.github.paohaijiao.column.JQuickColumnDefinition;
+import com.github.paohaijiao.connector.JQuickDataSourceConnector;
 import com.github.paohaijiao.dataType.JQuickDataTypeConverter;
 import com.github.paohaijiao.dataType.impl.JQuickDrillDataTypeConverter;
 import com.github.paohaijiao.dialect.JQuickAbsSQLDialect;
@@ -134,6 +135,63 @@ public class JQuickDrillDialect extends JQuickAbsSQLDialect {
                 sql.append(" COMMENT '").append(escapeString(table.getComment())).append("'");
             }
         }
+    }
+
+    @Override
+    public String getDriverClass(JQuickDataSourceConnector connector) {
+        if (connector != null && connector.getDriverClass() != null && !connector.getDriverClass().trim().isEmpty()) {
+            return connector.getDriverClass();
+        }
+        return "org.apache.drill.jdbc.Driver";
+    }
+
+    @Override
+    public String getUrl(JQuickDataSourceConnector connector) {
+        if (connector == null) {
+            throw new IllegalArgumentException("Connector cannot be null");
+        }
+        if (connector.getUrl() != null && !connector.getUrl().trim().isEmpty()) {
+            return connector.getUrl();
+        }
+        String host = connector.getHost();
+        String port = connector.getPort();
+        String schema = connector.getSchema();      // 存储插件名称
+        String username = connector.getUsername();
+        String password = connector.getPassword();
+        if (host == null || host.trim().isEmpty()) {
+            throw new IllegalStateException("Host (ZooKeeper or Drillbit) is required for Drill connection");
+        }
+        String effectivePort = (port != null && !port.trim().isEmpty()) ? port : "2181";
+        StringBuilder url = new StringBuilder();
+        url.append("jdbc:drill:");
+        boolean isDirectMode = "direct".equalsIgnoreCase(("connectionMode"));
+        if (isDirectMode) {
+            url.append("drillbit=").append(host);
+            if (!host.contains(":")) {
+                String drillbitPort = (port != null && !port.isEmpty()) ? port : "31010";
+                url.append(":").append(drillbitPort);
+            }
+        } else {
+            url.append("zk=").append(host);
+            if (!host.contains(":")) {
+                url.append(":").append(effectivePort);
+            }
+            String clusterId = connector.getByKeyStr("clusterId");
+            if (clusterId != null && !clusterId.isEmpty()) {
+                url.append("/drill/").append(clusterId);
+            }
+        }
+        if (schema != null && !schema.trim().isEmpty()) {
+            url.append(";schema=").append(schema);
+        }
+        if (username != null && !username.trim().isEmpty()) {
+            url.append(";user=").append(username);
+        }
+        if (password != null && !password.trim().isEmpty()) {
+            url.append(";password=").append(password);
+        }
+
+        return url.toString();
     }
 
     @Override

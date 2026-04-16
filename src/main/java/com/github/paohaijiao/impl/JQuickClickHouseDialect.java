@@ -17,6 +17,7 @@ package com.github.paohaijiao.impl;
  */
 
 import com.github.paohaijiao.column.JQuickColumnDefinition;
+import com.github.paohaijiao.connector.JQuickDataSourceConnector;
 import com.github.paohaijiao.dataType.JQuickDataTypeConverter;
 import com.github.paohaijiao.dataType.impl.JQuickClickHouseDataTypeConverter;
 import com.github.paohaijiao.dialect.JQuickAbsSQLDialect;
@@ -135,6 +136,58 @@ public class JQuickClickHouseDialect extends JQuickAbsSQLDialect {
                 sql.append("\nCOMMENT '").append(escapeString(table.getComment())).append("'");
             }
         }
+    }
+
+    @Override
+    public String getDriverClass(JQuickDataSourceConnector connector) {
+        if (connector != null && connector.getDriverClass() != null && !connector.getDriverClass().trim().isEmpty()) {
+            return connector.getDriverClass();
+        }
+        return "com.clickhouse.jdbc.ClickHouseDriver";
+    }
+
+    @Override
+    public String getUrl(JQuickDataSourceConnector connector) {
+        if (connector == null) {
+            throw new IllegalArgumentException("Connector cannot be null");
+        }
+        if (connector.getUrl() != null && !connector.getUrl().trim().isEmpty()) {
+            return connector.getUrl();
+        }
+        String host = connector.getHost();
+        String port = connector.getPort();
+        String database = connector.getSchema();
+        String username = connector.getUsername();
+        String password = connector.getPassword();
+        if (host == null || host.trim().isEmpty()) {
+            throw new IllegalStateException("Host is required for ClickHouse connection");
+        }
+        String effectivePort = (port != null && !port.trim().isEmpty()) ? port : "8123";
+        StringBuilder url = new StringBuilder();
+        url.append("jdbc:clickhouse://").append(host).append(":").append(effectivePort);
+        if (database != null && !database.trim().isEmpty()) {
+            url.append("/").append(database);
+        } else {
+            url.append("/");
+        }
+        boolean hasParams = false;
+        if (username != null && !username.trim().isEmpty()) {
+            url.append("?user=").append(username);
+            hasParams = true;
+        }
+        if (password != null && !password.trim().isEmpty()) {
+            url.append(hasParams ? "&" : "?").append("password=").append(password);
+            hasParams = true;
+        }
+        if (!hasParams) {
+            url.append("?");
+            hasParams = true;
+        } else {
+            url.append("&");
+        }
+        url.append("socket_timeout=60000");
+        url.append("&connect_timeout=30000");
+        return url.toString();
     }
 
     @Override

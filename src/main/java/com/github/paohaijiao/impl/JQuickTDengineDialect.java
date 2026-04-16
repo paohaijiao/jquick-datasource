@@ -1,6 +1,7 @@
 package com.github.paohaijiao.impl;
 
 import com.github.paohaijiao.column.JQuickColumnDefinition;
+import com.github.paohaijiao.connector.JQuickDataSourceConnector;
 import com.github.paohaijiao.dataType.JQuickDataTypeConverter;
 import com.github.paohaijiao.dataType.impl.JQuickTDengineDataTypeConverter;
 import com.github.paohaijiao.dialect.JQuickAbsSQLDialect;
@@ -58,6 +59,87 @@ public class JQuickTDengineDialect extends JQuickAbsSQLDialect {
                 }
             }
         }
+    }
+
+    @Override
+    public String getDriverClass(JQuickDataSourceConnector connector) {
+        if (connector != null && connector.getDriverClass() != null
+                && !connector.getDriverClass().trim().isEmpty()) {
+            return connector.getDriverClass();
+        }
+        String connectionType = connector.getByKeyStr("connectionType"); // native, rest, ws
+        boolean isRest = "rest".equalsIgnoreCase(connectionType);
+        boolean isWebSocket = "ws".equalsIgnoreCase(connectionType);
+        if (isRest) {
+            return "com.taosdata.jdbc.rs.RestfulDriver";
+        } else if (isWebSocket) {
+            return "com.taosdata.jdbc.ws.WebSocketDriver";
+        } else {
+            return "com.taosdata.jdbc.TSDBDriver";
+        }
+    }
+
+    @Override
+    public String getUrl(JQuickDataSourceConnector connector) {
+        if (connector == null) {
+            throw new IllegalArgumentException("Connector cannot be null");
+        }
+        if (connector.getUrl() != null && !connector.getUrl().trim().isEmpty()) {
+            return connector.getUrl();
+        }
+        String host = connector.getHost();
+        String port = connector.getPort();
+        String database = connector.getSchema();      // 数据库名
+        String username = connector.getUsername();
+        String password = connector.getPassword();
+        if (host == null || host.trim().isEmpty()) {
+            throw new IllegalStateException("Host is required for TDengine connection");
+        }
+        String connectionType = connector.getByKeyStr("connectionType");
+        boolean isNative = "native".equalsIgnoreCase(connectionType) || connectionType == null;
+        boolean isRest = "rest".equalsIgnoreCase(connectionType);
+        boolean isWebSocket = "ws".equalsIgnoreCase(connectionType);
+        String effectivePort;
+        if (port != null && !port.trim().isEmpty()) {
+            effectivePort = port;
+        } else if (isNative) {
+            effectivePort = "6030";
+        } else {
+            effectivePort = "6041";
+        }
+        String effectiveDatabase = (database != null && !database.trim().isEmpty()) ? database : "";
+        StringBuilder url = new StringBuilder();
+        if (isWebSocket) {
+            url.append("jdbc:TAOS-WS://").append(host).append(":").append(effectivePort);
+        } else if (isRest) {
+            url.append("jdbc:TAOS-RS://").append(host).append(":").append(effectivePort);
+        } else {
+            url.append("jdbc:TAOS://").append(host).append(":").append(effectivePort);
+        }
+        if (!effectiveDatabase.isEmpty()) {
+            url.append("/").append(effectiveDatabase);
+        }
+        boolean hasParams = false;
+        String effectiveUser = (username != null && !username.trim().isEmpty()) ? username : "root";
+        url.append("?user=").append(effectiveUser);
+        hasParams = true;
+        String effectivePassword = (password != null && !password.trim().isEmpty()) ? password : "taosdata";
+        url.append("&password=").append(effectivePassword);
+        String charset = connector.getByKeyStr("charset");
+        if (charset != null && !charset.trim().isEmpty()) {
+            url.append("&charset=").append(charset);
+        }
+        String timezone = connector.getByKeyStr("timezone");
+        if (timezone != null && !timezone.trim().isEmpty()) {
+            url.append("&timezone=").append(timezone);
+        }
+
+        String adapterList = connector.getByKeyStr("adapterList");
+        if (adapterList != null && !adapterList.trim().isEmpty()) {
+            url.append("&adapterList=").append(adapterList);
+        }
+
+        return url.toString();
     }
 
     @Override

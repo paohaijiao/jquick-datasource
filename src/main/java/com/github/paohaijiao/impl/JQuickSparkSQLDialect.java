@@ -17,6 +17,7 @@ package com.github.paohaijiao.impl;
  */
 
 import com.github.paohaijiao.column.JQuickColumnDefinition;
+import com.github.paohaijiao.connector.JQuickDataSourceConnector;
 import com.github.paohaijiao.dataType.JQuickDataTypeConverter;
 import com.github.paohaijiao.dataType.impl.JQuickSparkSQLDataTypeConverter;
 import com.github.paohaijiao.dialect.JQuickAbsSQLDialect;
@@ -174,6 +175,53 @@ public class JQuickSparkSQLDialect extends JQuickAbsSQLDialect {
                 }
             }
         }
+    }
+
+    @Override
+    public String getDriverClass(JQuickDataSourceConnector connector) {
+        if (connector != null && connector.getDriverClass() != null && !connector.getDriverClass().trim().isEmpty()) {
+            return connector.getDriverClass();
+        }
+        return "org.apache.hive.jdbc.HiveDriver";
+    }
+
+    @Override
+    public String getUrl(JQuickDataSourceConnector connector) {
+        if (connector == null) {
+            throw new IllegalArgumentException("Connector cannot be null");
+        }
+        if (connector.getUrl() != null && !connector.getUrl().trim().isEmpty()) {
+            return connector.getUrl();
+        }
+        String host = connector.getHost();
+        String port = connector.getPort();
+        String database = connector.getSchema();      // 数据库名
+        String username = connector.getUsername();
+        String password = connector.getPassword();
+        if (host == null || host.trim().isEmpty()) {
+            throw new IllegalStateException("Host is required for Spark SQL connection");
+        }
+        String effectivePort = (port != null && !port.trim().isEmpty()) ? port : "10015";
+        String effectiveDatabase = (database != null && !database.trim().isEmpty()) ? database : "default";
+        StringBuilder url = new StringBuilder();
+        url.append("jdbc:hive2://").append(host).append(":").append(effectivePort);
+        url.append("/").append(effectiveDatabase);
+        boolean hasParams = false;
+        if (username != null && !username.trim().isEmpty()) {
+            url.append(";user=").append(username);
+            hasParams = true;
+        }
+        if (password != null && !password.trim().isEmpty()) {
+            url.append(";password=").append(password);
+            hasParams = true;
+        }
+        String authMode = connector.getByKeyStr("authMode");
+        if (authMode != null && !authMode.isEmpty()) {
+            url.append(hasParams ? ";" : "").append("auth=").append(authMode);
+            hasParams = true;
+        }
+
+        return url.toString();
     }
 
     @Override

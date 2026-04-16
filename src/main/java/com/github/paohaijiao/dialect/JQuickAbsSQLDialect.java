@@ -16,6 +16,8 @@
 package com.github.paohaijiao.dialect;
 
 import com.github.paohaijiao.column.JQuickColumnDefinition;
+import com.github.paohaijiao.connector.JQuickDataSourceConnector;
+import com.github.paohaijiao.console.JConsole;
 import com.github.paohaijiao.dataType.JQuickDataType;
 import com.github.paohaijiao.dataType.JQuickDataTypeConverter;
 import com.github.paohaijiao.dataType.enums.JQuickDataTypeFamily;
@@ -27,6 +29,9 @@ import com.github.paohaijiao.extra.JQuickPrimaryKeyConstraint;
 import com.github.paohaijiao.extra.JQuickUniqueConstraint;
 import com.github.paohaijiao.table.JQuickTableDefinition;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -41,7 +46,9 @@ import java.util.stream.Collectors;
  */
 public abstract class JQuickAbsSQLDialect implements JQuickSQLDialect {
 
-   private static SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    protected JConsole console=new JConsole();
+
+    private static SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     protected static final String NEW_LINE = "\n";
 
@@ -58,6 +65,23 @@ public abstract class JQuickAbsSQLDialect implements JQuickSQLDialect {
 
     protected abstract void appendTableOptions(StringBuilder sql, JQuickTableDefinition table);
 
+
+    public abstract String getDriverClass(JQuickDataSourceConnector connector);
+
+    public abstract String getUrl(JQuickDataSourceConnector connector);
+
+    public Connection getConnection(JQuickDataSourceConnector connector){
+        Connection conn = null;
+        try {
+            Class.forName(this.getDriverClass(connector));
+            conn = DriverManager.getConnection(getUrl(connector), connector.getUsername(), connector.getPassword());
+        } catch (ClassNotFoundException e) {
+            console.error("数据库驱动加载失败: " ,e);
+        } catch (SQLException e) {
+            console.error("数据库连接失败: " ,e);
+        }
+        return conn;
+    }
     /**
      * 转换数据类型（子类必须实现）
      *

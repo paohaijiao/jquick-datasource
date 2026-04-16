@@ -16,6 +16,7 @@ package com.github.paohaijiao.impl;
  */
 
 import com.github.paohaijiao.column.JQuickColumnDefinition;
+import com.github.paohaijiao.connector.JQuickDataSourceConnector;
 import com.github.paohaijiao.dataType.JQuickDataType;
 import com.github.paohaijiao.dataType.JQuickDataTypeConverter;
 import com.github.paohaijiao.dataType.impl.JQuickSybaseDataTypeConverter;
@@ -114,6 +115,57 @@ public class JQuickSybaseDialect extends JQuickAbsSQLDialect {
                 }
             }
         }
+    }
+
+    @Override
+    public String getDriverClass(JQuickDataSourceConnector connector) {
+        if (connector != null && connector.getDriverClass() != null && !connector.getDriverClass().trim().isEmpty()) {
+            return connector.getDriverClass();
+        }
+        return "com.sybase.jdbc4.jdbc.SybDriver";
+    }
+
+    @Override
+    public String getUrl(JQuickDataSourceConnector connector) {
+        if (connector == null) {
+            throw new IllegalArgumentException("Connector cannot be null");
+        }
+        if (connector.getUrl() != null && !connector.getUrl().trim().isEmpty()) {
+            return connector.getUrl();
+        }
+        String host = connector.getHost();
+        String port = connector.getPort();
+        String database = connector.getSchema();
+        String username = connector.getUsername();
+        String password = connector.getPassword();
+        if (host == null || host.trim().isEmpty()) {
+            throw new IllegalStateException("Host is required for Sybase connection");
+        }
+        String effectivePort = (port != null && !port.trim().isEmpty()) ? port : "5000";
+        StringBuilder url = new StringBuilder();
+        url.append("jdbc:sybase:Tds:").append(host).append(":").append(effectivePort);
+        if (database != null && !database.trim().isEmpty()) {
+            url.append("/").append(database);
+        }
+        boolean hasParams = false;
+        String charset = connector.getByKeyStr("charset");
+        if (charset != null && !charset.trim().isEmpty()) {
+            url.append(hasParams ? "&" : "?").append("charset=").append(charset);
+            hasParams = true;
+        } else {
+            url.append(hasParams ? "&" : "?").append("charset=utf-8");
+            hasParams = true;
+        }
+        boolean useJce = "true".equalsIgnoreCase(connector.getByKeyStr("useJCE"));
+        if (useJce) {
+            url.append("&JCE=com.sybase.jdbc4.jce.SybJCE");
+        }
+        String loginTimeout = connector.getByKeyStr("loginTimeout");
+        if (loginTimeout != null && !loginTimeout.isEmpty()) {
+            url.append("&loginTimeout=").append(loginTimeout);
+            hasParams = true;
+        }
+        return url.toString();
     }
 
     @Override

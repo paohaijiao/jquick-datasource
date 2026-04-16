@@ -16,6 +16,7 @@ package com.github.paohaijiao.impl;
  * Copyright (c) [2025-2099] Martin (goudingcheng@gmail.com)
  */
 import com.github.paohaijiao.column.JQuickColumnDefinition;
+import com.github.paohaijiao.connector.JQuickDataSourceConnector;
 import com.github.paohaijiao.dataType.JQuickDataType;
 import com.github.paohaijiao.dataType.JQuickDataTypeConverter;
 import com.github.paohaijiao.dataType.impl.JQuickPrestoDataTypeConverter;
@@ -142,6 +143,57 @@ public class JQuickPrestoDialect extends JQuickAbsSQLDialect {
                 sql.append(", parquet_compression = '").append(compression.toUpperCase()).append("'");
             }
         }
+    }
+
+    @Override
+    public String getDriverClass(JQuickDataSourceConnector connector) {
+        if (connector != null && connector.getDriverClass() != null && !connector.getDriverClass().isEmpty()) {
+            return connector.getDriverClass();
+        }
+        String mode = connector != null ? connector.getByKeyStr("mode") : null;
+        if ("postgresql".equalsIgnoreCase(mode)) {
+            return "org.postgresql.Driver";
+        }
+        return "com.mysql.cj.jdbc.Driver";
+    }
+
+    @Override
+    public String getUrl(JQuickDataSourceConnector connector) {
+        if (connector == null) {
+            throw new IllegalArgumentException("Connector cannot be null");
+        }
+        if (connector.getUrl() != null && !connector.getUrl().isEmpty()) {
+            return connector.getUrl();
+        }
+        String host = connector.getHost();
+        String port = connector.getPort();
+        String database = connector.getSchema();
+        String username = connector.getUsername();
+        String password = connector.getPassword();
+        if (host == null || host.isEmpty()) {
+            throw new IllegalStateException("Host is required for PolarDB");
+        }
+        String mode = connector.getByKeyStr("mode");
+        boolean isPostgresqlMode = "postgresql".equalsIgnoreCase(mode);
+        String effectivePort = (port != null && !port.isEmpty()) ? port : (isPostgresqlMode ? "5432" : "3306");
+        String effectiveDatabase = (database != null && !database.isEmpty()) ? database : "";
+        StringBuilder url = new StringBuilder();
+        if (isPostgresqlMode) {
+            url.append("jdbc:postgresql://").append(host).append(":").append(effectivePort);
+            url.append("/").append(effectiveDatabase);
+        } else {
+            url.append("jdbc:mysql://").append(host).append(":").append(effectivePort);
+            url.append("/").append(effectiveDatabase);
+        }
+        boolean hasParams = false;
+        if (username != null && !username.isEmpty()) {
+            url.append("?user=").append(username);
+            hasParams = true;
+        }
+        if (password != null && !password.isEmpty()) {
+            url.append(hasParams ? "&" : "?").append("password=").append(password);
+        }
+        return url.toString();
     }
 
     @Override

@@ -17,6 +17,7 @@ package com.github.paohaijiao.impl;
  */
 
 import com.github.paohaijiao.column.JQuickColumnDefinition;
+import com.github.paohaijiao.connector.JQuickDataSourceConnector;
 import com.github.paohaijiao.dataType.JQuickDataType;
 import com.github.paohaijiao.dataType.JQuickDataTypeConverter;
 import com.github.paohaijiao.dataType.impl.JQuickAccessDataTypeConverter;
@@ -127,6 +128,40 @@ public class JQuickAccessDialect extends JQuickAbsSQLDialect {
                 }
             }
         }
+    }
+
+    @Override
+    public String getDriverClass(JQuickDataSourceConnector connector) {
+        if(null!=connector){
+            return connector.getDriverClass();
+        }
+        return "net.ucanaccess.jdbc.UcanaccessDriver";
+    }
+
+    @Override
+    public String getUrl(JQuickDataSourceConnector connector) {
+        if (connector == null) {
+            throw new IllegalArgumentException("Connector cannot be null");
+        }
+        if (connector.getUrl() != null && !connector.getUrl().trim().isEmpty()) {
+            return connector.getUrl();
+        }
+        String filePath = connector.getSchema();
+        String password = connector.getPassword();
+        if (filePath == null || filePath.trim().isEmpty()) {
+            throw new IllegalStateException("Database file path (schema) is required for Access connection");
+        }
+        StringBuilder url = new StringBuilder();
+        url.append("jdbc:ucanaccess://");
+        String normalizedPath = filePath.trim();
+        if (normalizedPath.contains("\\")) {
+            normalizedPath = normalizedPath.replace("\\", "/");
+        }
+        url.append(normalizedPath);
+        if (password != null && !password.trim().isEmpty()) {
+            url.append(";password=").append(password);
+        }
+        return url.toString();
     }
 
     @Override

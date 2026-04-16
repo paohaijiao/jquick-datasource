@@ -1,6 +1,7 @@
 package com.github.paohaijiao.impl;
 
 import com.github.paohaijiao.column.JQuickColumnDefinition;
+import com.github.paohaijiao.connector.JQuickDataSourceConnector;
 import com.github.paohaijiao.dataType.JQuickDataTypeConverter;
 import com.github.paohaijiao.dataType.impl.JQuickSnowflakeDataTypeConverter;
 import com.github.paohaijiao.dialect.JQuickAbsSQLDialect;
@@ -76,6 +77,69 @@ public class JQuickSnowflakeDialect extends JQuickAbsSQLDialect {
         if (table.getComment() != null && !table.getComment().isEmpty()) {
             sql.append("\nCOMMENT = '").append(escapeString(table.getComment())).append("'");
         }
+    }
+
+    @Override
+    public String getDriverClass(JQuickDataSourceConnector connector) {
+        if (connector != null && connector.getDriverClass() != null && !connector.getDriverClass().trim().isEmpty()) {
+            return connector.getDriverClass();
+        }
+        return "net.snowflake.client.jdbc.SnowflakeDriver";
+    }
+
+    @Override
+    public String getUrl(JQuickDataSourceConnector connector) {
+        if (connector == null) {
+            throw new IllegalArgumentException("Connector cannot be null");
+        }
+        if (connector.getUrl() != null && !connector.getUrl().trim().isEmpty()) {
+            return connector.getUrl();
+        }
+        String host = connector.getHost();
+        String database = connector.getSchema();
+        String username = connector.getUsername();
+        String password = connector.getPassword();
+        String warehouse = connector.getByKeyStr("warehouse");
+        String schemaName = connector.getByKeyStr("schema");
+        if (host == null || host.trim().isEmpty()) {
+            throw new IllegalStateException("Account (host) is required for Snowflake connection");
+        }
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalStateException("Username is required for Snowflake connection");
+        }
+        StringBuilder url = new StringBuilder();
+        url.append("jdbc:snowflake://").append(host);
+        if (!host.contains(".snowflakecomputing.com") && !host.contains("://")) {
+            url.append(".snowflakecomputing.com");
+        }
+        boolean hasParams = false;
+        if (username != null && !username.trim().isEmpty()) {
+            url.append("?user=").append(username);
+            hasParams = true;
+        }
+        if (password != null && !password.trim().isEmpty()) {
+            url.append(hasParams ? "&" : "?").append("password=").append(password);
+            hasParams = true;
+        }
+        if (database != null && !database.trim().isEmpty()) {
+            url.append(hasParams ? "&" : "?").append("db=").append(database);
+            hasParams = true;
+        }
+        if (warehouse != null && !warehouse.trim().isEmpty()) {
+            url.append(hasParams ? "&" : "?").append("warehouse=").append(warehouse);
+            hasParams = true;
+        }
+        if (schemaName != null && !schemaName.trim().isEmpty()) {
+            url.append(hasParams ? "&" : "?").append("schema=").append(schemaName);
+            hasParams = true;
+        }
+        String role = connector.getByKeyStr("role");
+        if (role != null && !role.trim().isEmpty()) {
+            url.append(hasParams ? "&" : "?").append("role=").append(role);
+            hasParams = true;
+        }
+
+        return url.toString();
     }
 
     @Override

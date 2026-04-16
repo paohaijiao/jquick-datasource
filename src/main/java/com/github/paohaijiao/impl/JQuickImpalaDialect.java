@@ -17,6 +17,7 @@ package com.github.paohaijiao.impl;
  */
 
 import com.github.paohaijiao.column.JQuickColumnDefinition;
+import com.github.paohaijiao.connector.JQuickDataSourceConnector;
 import com.github.paohaijiao.dataType.JQuickDataType;
 import com.github.paohaijiao.dataType.JQuickDataTypeConverter;
 import com.github.paohaijiao.dataType.impl.JQuickImpalaDataTypeConverter;
@@ -140,6 +141,60 @@ public class JQuickImpalaDialect extends JQuickAbsSQLDialect {
                 sql.append("\nTBLPROPERTIES ('parquet.compression'='").append(compression.toLowerCase()).append("')");
             }
         }
+    }
+
+    @Override
+    public String getDriverClass(JQuickDataSourceConnector connector) {
+        if (connector != null && connector.getDriverClass() != null && !connector.getDriverClass().trim().isEmpty()) {
+            return connector.getDriverClass();
+        }
+        return "com.cloudera.impala.jdbc41.Driver";
+    }
+
+    @Override
+    public String getUrl(JQuickDataSourceConnector connector) {
+        if (connector == null) {
+            throw new IllegalArgumentException("Connector cannot be null");
+        }
+        if (connector.getUrl() != null && !connector.getUrl().trim().isEmpty()) {
+            return connector.getUrl();
+        }
+        String host = connector.getHost();
+        String port = connector.getPort();
+        String database = connector.getSchema();      // 数据库名
+        String username = connector.getUsername();
+        String password = connector.getPassword();
+        if (host == null || host.trim().isEmpty()) {
+            throw new IllegalStateException("Host is required for Impala connection");
+        }
+        String effectivePort = (port != null && !port.trim().isEmpty()) ? port : "21050";
+        String effectiveDatabase = (database != null && !database.trim().isEmpty()) ? database : "default";
+        StringBuilder url = new StringBuilder();
+        url.append("jdbc:impala://").append(host).append(":").append(effectivePort);
+        url.append("/").append(effectiveDatabase);
+        boolean hasParams = false;
+        if (username != null && !username.trim().isEmpty()) {
+            url.append(";auth=noSasl");
+            hasParams = true;
+        }
+        boolean useSsl = "true".equalsIgnoreCase(connector.getByKeyStr("ssl"));
+        if (useSsl) {
+            url.append(hasParams ? ";" : ";");
+            url.append("ssl=true");
+            hasParams = true;
+        }
+        boolean useKerberos = "true".equalsIgnoreCase(connector.getByKeyStr("kerberos"));
+        if (useKerberos) {
+            url.append(hasParams ? ";" : ";");
+            url.append("auth=kerberos");
+            String principal = connector.getByKeyStr("principal");
+            if (principal != null && !principal.isEmpty()) {
+                url.append(";principal=").append(principal);
+            }
+            hasParams = true;
+        }
+
+        return url.toString();
     }
 
     /**

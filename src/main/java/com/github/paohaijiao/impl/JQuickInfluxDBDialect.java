@@ -2,6 +2,7 @@ package com.github.paohaijiao.impl;
 
 
 import com.github.paohaijiao.column.JQuickColumnDefinition;
+import com.github.paohaijiao.connector.JQuickDataSourceConnector;
 import com.github.paohaijiao.dataType.JQuickDataTypeConverter;
 import com.github.paohaijiao.dataType.impl.JQuickInfluxDBDataTypeConverter;
 import com.github.paohaijiao.dialect.JQuickAbsSQLDialect;
@@ -58,6 +59,49 @@ public class JQuickInfluxDBDialect extends JQuickAbsSQLDialect {
                 sql.append(" REPLICATION ").append(replication);
             }
         }
+    }
+
+    @Override
+    public String getDriverClass(JQuickDataSourceConnector connector) {
+        if (connector != null && connector.getDriverClass() != null && !connector.getDriverClass().trim().isEmpty()) {
+            return connector.getDriverClass();
+        }
+        return "net.suteren.jdbc.influxdb.InfluxDbDriver";
+    }
+
+    @Override
+    public String getUrl(JQuickDataSourceConnector connector) {
+        if (connector == null) {
+            throw new IllegalArgumentException("Connector cannot be null");
+        }
+        if (connector.getUrl() != null && !connector.getUrl().trim().isEmpty()) {
+            return connector.getUrl();
+        }
+        String host = connector.getHost();
+        String port = connector.getPort();
+        String database = connector.getSchema();
+        String username = connector.getUsername();
+        String password = connector.getPassword();
+        if (host == null || host.trim().isEmpty()) {
+            throw new IllegalStateException("Host is required for InfluxDB connection");
+        }
+        String effectivePort = (port != null && !port.trim().isEmpty()) ? port : "8086";
+        StringBuilder url = new StringBuilder();
+        url.append("jdbc:influxdb://").append(host).append(":").append(effectivePort);
+        if (database != null && !database.trim().isEmpty()) {
+            url.append("/").append(database);
+        }
+        boolean hasParams = false;
+        if (username != null && !username.trim().isEmpty()) {
+            url.append(hasParams ? "&" : "?").append("user=").append(username);
+            hasParams = true;
+        }
+        if (password != null && !password.trim().isEmpty()) {
+            url.append(hasParams ? "&" : "?").append("password=").append(password);
+            hasParams = true;
+        }
+
+        return url.toString();
     }
 
     @Override
