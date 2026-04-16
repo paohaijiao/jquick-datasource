@@ -13,6 +13,7 @@ com.github.paohaijiao.provider.impl.JQuickGaussDBDialectProvider
 com.github.paohaijiao.provider.impl.JQuickGreenplumDialectProvider
 com.github.paohaijiao.provider.impl.JQuickH2DialectProvider
 com.github.paohaijiao.provider.impl.JQuickHiveDialectProvider
+com.github.paohaijiao.provider.impl.JQuickImpalaDialectProvider
 com.github.paohaijiao.provider.impl.JQuickKingbaseEsDialectProvider
 com.github.paohaijiao.provider.impl.JQuickMysqlDialectProvider
 com.github.paohaijiao.provider.impl.JQuickMariaDbDialectProvider
