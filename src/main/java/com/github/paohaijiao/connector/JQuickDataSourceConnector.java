@@ -21,6 +21,8 @@ public class JQuickDataSourceConnector {
 
     private String schema;
 
+    private String type;
+
     private HashMap<String,Object> extract=new HashMap<>();
 
 
