@@ -14,6 +14,7 @@ package com.github.paohaijiao.factory;
  *
  * Copyright (c) [2025-2099] Martin (goudingcheng@gmail.com)
  */
+
 import com.github.paohaijiao.column.JQuickColumnDefinition;
 import com.github.paohaijiao.connector.JQuickDataSourceConnector;
 import com.github.paohaijiao.console.JConsole;
@@ -24,13 +25,14 @@ import com.github.paohaijiao.extra.JQuickIndexDefinition;
 import com.github.paohaijiao.extra.JQuickPrimaryKeyConstraint;
 import com.github.paohaijiao.extra.JQuickUniqueConstraint;
 import com.github.paohaijiao.manager.JQuickDatabaseTypeManager;
+import com.github.paohaijiao.manager.JQuickPoolManager;
+import com.github.paohaijiao.pool.JQuickConnectionPool;
 import com.github.paohaijiao.row.JQuickRow;
 import com.github.paohaijiao.table.JQuickTableDefinition;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * JQuick SQL 执行工厂
@@ -53,6 +55,8 @@ public class JQuickSQLFactory implements AutoCloseable {
 
     private boolean ownsConnection = false;
 
+    private JQuickConnectionPool pool;
+
     /**
      * 使用方言创建工厂（从 JQuickConnectionContext 获取连接）
      *
@@ -65,7 +69,7 @@ public class JQuickSQLFactory implements AutoCloseable {
     /**
      * 使用方言和默认表定义创建工厂（从 JQuickConnectionContext 获取连接）
      *
-     * @param dialect SQL方言
+     * @param dialect                SQL方言
      * @param defaultTableDefinition 默认表定义
      */
     public JQuickSQLFactory(JQuickSQLDialect dialect, JQuickTableDefinition defaultTableDefinition) {
@@ -76,9 +80,9 @@ public class JQuickSQLFactory implements AutoCloseable {
      * 使用方言、默认表定义和连接配置创建工厂
      * 如果 JQuickConnectionContext 中没有连接，则使用 connector 创建新连接并绑定
      *
-     * @param dialect SQL方言
+     * @param dialect                SQL方言
      * @param defaultTableDefinition 默认表定义
-     * @param connector 数据源连接配置（可选，当 ThreadLocal 中无连接时使用）
+     * @param connector              数据源连接配置（可选，当 ThreadLocal 中无连接时使用）
      */
     public JQuickSQLFactory(JQuickSQLDialect dialect, JQuickTableDefinition defaultTableDefinition, JQuickDataSourceConnector connector) {
         this.dialect = dialect;
@@ -99,7 +103,7 @@ public class JQuickSQLFactory implements AutoCloseable {
     /**
      * 使用连接配置和默认表定义创建工厂
      *
-     * @param connector 数据源连接配置
+     * @param connector              数据源连接配置
      * @param defaultTableDefinition 默认表定义
      */
     public JQuickSQLFactory(JQuickDataSourceConnector connector, JQuickTableDefinition defaultTableDefinition) {
@@ -111,7 +115,7 @@ public class JQuickSQLFactory implements AutoCloseable {
             if (this.dialect == null) {
                 throw new IllegalArgumentException("Cannot detect database type from databaseType: " + connector.getUrl());
             }
-        }else if (connector.getUrl() != null && !connector.getUrl().isEmpty()) {
+        } else if (connector.getUrl() != null && !connector.getUrl().isEmpty()) {
             this.dialect = manager.getDialectByJdbcUrl(connector.getUrl());
             if (this.dialect == null) {
                 throw new IllegalArgumentException("Cannot detect database type from URL: " + connector.getUrl());
@@ -121,11 +125,12 @@ public class JQuickSQLFactory implements AutoCloseable {
         }
         console.info("JQuickSQLFactory initialized with dialect: " + dialect.getClass().getSimpleName());
     }
+
     /**
      * 使用指定的数据库类型和连接配置创建工厂
      *
-     * @param connector 数据源连接配置
-     * @param databaseType 数据库类型
+     * @param connector              数据源连接配置
+     * @param databaseType           数据库类型
      * @param defaultTableDefinition 默认表定义
      */
     public JQuickSQLFactory(JQuickDataSourceConnector connector, String databaseType, JQuickTableDefinition defaultTableDefinition) {
@@ -232,6 +237,7 @@ public class JQuickSQLFactory implements AutoCloseable {
         Statement stmt = getConnection().createStatement();
         return stmt.executeQuery(sql);
     }
+
     /**
      * 执行查询并自动转换为 JQuickRow 列表
      */
@@ -251,6 +257,7 @@ public class JQuickSQLFactory implements AutoCloseable {
         }
         return results;
     }
+
     /**
      * 创建表
      */
@@ -365,6 +372,7 @@ public class JQuickSQLFactory implements AutoCloseable {
     public String getDescribeTable(String tableName) throws SQLException {
         return dialect.buildDescribeTable(defaultTableDefinition, tableName);
     }
+
     /**
      * 插入数据
      */
@@ -576,6 +584,7 @@ public class JQuickSQLFactory implements AutoCloseable {
     public boolean exists(String whereClause) throws SQLException {
         return count(whereClause) > 0;
     }
+
     /**
      * 批量执行SQL
      */
@@ -602,6 +611,7 @@ public class JQuickSQLFactory implements AutoCloseable {
             return pstmt.executeBatch();
         }
     }
+
     /**
      * 引用标识符
      */
@@ -708,5 +718,65 @@ public class JQuickSQLFactory implements AutoCloseable {
             JQuickConnectionContext.remove();
             console.info("ThreadLocal connection removed by factory");
         }
+    }
+
+    /**
+     * 使用连接池获取连接
+     */
+    public Connection getPooledConnection() throws SQLException {
+        if (pool == null) {
+            if (connector != null && dialect != null) {
+                pool = JQuickPoolManager.getInstance().createPool(connector, dialect, "factory_" + System.identityHashCode(this));
+            } else {
+                throw new SQLException("Cannot create pool: connector or dialect missing");
+            }
+        }
+        return pool.getConnection();
+    }
+
+    /**
+     * 使用连接池执行更新
+     */
+    public int executeUpdateWithPool(String sql) throws SQLException {
+        console.info("Executing update with pool: " + sql);
+        try (Connection conn = getPooledConnection(); Statement stmt = conn.createStatement()) {
+            return stmt.executeUpdate(sql);
+        }
+    }
+
+    /**
+     * 使用连接池执行查询
+     */
+    public ResultSet executeQueryWithPool(String sql) throws SQLException {
+        console.info("Executing query with pool: " + sql);
+        Connection conn = getPooledConnection();
+        Statement stmt = conn.createStatement();
+        return stmt.executeQuery(sql);
+    }
+
+    /**
+     * 设置连接池
+     */
+    public JQuickSQLFactory withPool(JQuickConnectionPool pool) {
+        this.pool = pool;
+        return this;
+    }
+
+    /**
+     * 获取连接池
+     */
+    public JQuickConnectionPool getPool() {
+        return pool;
+    }
+
+    /**
+     * 关闭连接池
+     */
+    public void closePool() {
+        if (pool != null) {
+            pool.close();
+            pool = null;
+        }
+
     }
 }
