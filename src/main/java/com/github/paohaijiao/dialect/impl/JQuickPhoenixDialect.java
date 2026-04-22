@@ -24,7 +24,7 @@ import com.github.paohaijiao.dataType.enums.JQuickDataTypeFamily;
 import com.github.paohaijiao.dataType.impl.JQuickPhoenixDataTypeConverter;
 import com.github.paohaijiao.dialect.JQuickAbsSQLDialect;
 import com.github.paohaijiao.extra.JQuickIndexDefinition;
-import com.github.paohaijiao.row.JQuickRow;
+import com.github.paohaijiao.statement.JQuickRow;
 import com.github.paohaijiao.table.JQuickTableDefinition;
 
 import java.util.ArrayList;

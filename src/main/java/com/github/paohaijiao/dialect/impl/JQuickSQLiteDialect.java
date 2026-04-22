@@ -24,7 +24,7 @@ import com.github.paohaijiao.enums.JQuickForeignKeyAction;
 import com.github.paohaijiao.enums.JQuickPositionType;
 import com.github.paohaijiao.extra.JQuickForeignKeyConstraint;
 import com.github.paohaijiao.extra.JQuickIndexDefinition;
-import com.github.paohaijiao.row.JQuickRow;
+import com.github.paohaijiao.statement.JQuickRow;
 import com.github.paohaijiao.table.JQuickTableDefinition;
 
 import java.util.ArrayList;

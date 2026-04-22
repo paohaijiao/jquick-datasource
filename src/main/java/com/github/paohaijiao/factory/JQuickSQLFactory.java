@@ -27,7 +27,7 @@ import com.github.paohaijiao.extra.JQuickUniqueConstraint;
 import com.github.paohaijiao.manager.JQuickDatabaseTypeManager;
 import com.github.paohaijiao.manager.JQuickPoolManager;
 import com.github.paohaijiao.pool.JQuickConnectionPool;
-import com.github.paohaijiao.row.JQuickRow;
+import com.github.paohaijiao.statement.JQuickRow;
 import com.github.paohaijiao.table.JQuickTableDefinition;
 
 import java.sql.*;

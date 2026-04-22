@@ -22,7 +22,7 @@ import com.github.paohaijiao.extra.JQuickPrimaryKeyConstraint;
 import com.github.paohaijiao.extra.JQuickUniqueConstraint;
 import com.github.paohaijiao.dialect.impl.JQuickAccessDialect;
 import com.github.paohaijiao.dialect.impl.JQuickGreenplumDialect;
-import com.github.paohaijiao.row.JQuickRow;
+import com.github.paohaijiao.statement.JQuickRow;
 import com.github.paohaijiao.table.JQuickTableDefinition;
 import org.junit.Test;
 
