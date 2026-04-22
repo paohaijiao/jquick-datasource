@@ -288,6 +288,23 @@ public class JQuickSQLFactory implements AutoCloseable {
     }
 
     /**
+     * 字段加注释
+     * @param tableDefinition
+     * @param column
+     * @return
+     * @throws SQLException
+     */
+    public boolean commentOnColumn(JQuickTableDefinition tableDefinition,JQuickColumnDefinition column) throws SQLException {
+        if (tableDefinition.getExtensions() == null) {
+            tableDefinition.setExtensions(new java.util.HashMap<>());
+        }
+        tableDefinition.getExtensions().put("ifNotExists", true);
+        String sql = dialect.buildComment(tableDefinition,column);
+        return this.execute(sql);
+    }
+
+
+    /**
      * 修改列
      */
     public boolean modifyColumn(String tableName, JQuickColumnDefinition column) throws SQLException {
